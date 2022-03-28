@@ -95,7 +95,12 @@ module Ccrypto
           else
             @logger.debug "Using given IV"
           end
-          ivParam = javax.crypto.spec.GCMParameterSpec.new(128, @spec.iv) # 16 bytes
+
+          if @spec.is_mode?(:gcm)
+            ivParam = javax.crypto.spec.GCMParameterSpec.new(@spec.iv.length*8, @spec.iv) # 16 bytes
+          else
+            ivParam = javax.crypto.spec.IvParameterSpec.new(@spec.iv) # 16 bytes
+          end
 
         elsif @spec.is_algo?(:blowfish)
           if is_empty?(@spec.iv)
@@ -176,8 +181,10 @@ module Ccrypto
       end
 
       def final(val = nil, &block)
+        baos = java.io.ByteArrayOutputStream.new
         if not_empty?(val)
-          update(val)
+          res = update(val)
+          baos.write(res) if not_empty?(res)
         end
 
         begin
@@ -191,7 +198,9 @@ module Ccrypto
             @spec.auth_tag = String.from_java_bytes(@spec.auth_tag) if not_empty?(@spec.auth_tag)
           end 
 
-          res
+          baos.write(res) if not_empty?(res)
+          baos.toByteArray
+
         rescue Exception => ex
           raise Ccrypto::CipherEngineException, ex
         end

@@ -1,7 +1,7 @@
 GIT
   remote: ccrypto
-  revision: beace29ef4e6eb76d77fcd90aea0f15bc5238e9f
-  branch: master
+  revision: bf01efd2ddaccac3ee4caab6533990e3e85d1934
+  branch: main
   specs:
     ccrypto (0.1.0)
       tlogger

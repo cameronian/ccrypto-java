@@ -96,7 +96,8 @@ module Ccrypto
           tag.octets
 
         when org.bouncycastle.asn1.ASN1Integer
-          tag.int_value_exact
+          #tag.int_value_exact
+          tag.value
 
         when org.bouncycastle.asn1.DLSequence, org.bouncycastle.asn1.DERSequence
           tag.to_a
