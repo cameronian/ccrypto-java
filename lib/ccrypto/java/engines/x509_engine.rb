@@ -32,10 +32,10 @@ module Ccrypto
 
         iss = cp.issuer_cert
         if not_empty?(iss) 
-          raise X509EngineException, "Issuer certificate must be X509 Certificate object (#{iss.class})" if not iss.is_a?(java.security.cert.Certificate)
+          raise X509EngineException, "Issuer certificate must be Ccrypto::X509Cert object (#{iss.class})" if not iss.is_a?(Ccrypto::X509Cert) #iss.is_a?(java.security.cert.Certificate)
 
-          certGen = org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder.new(iss, serial, validFrom, validTo, to_cert_subject, cp.public_key)
-          certGen.addExtension(org.bouncycastle.asn1.x509.Extension::authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(org.bouncycastle.asn1.x509.SubjectPublicKeyInfo.getInstance(iss.getPublicKey.to_bin)))
+          certGen = org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder.new(Ccrypto::X509Cert.to_java_cert(iss), serial, validFrom, validTo, to_cert_subject, cp.public_key)
+          certGen.addExtension(org.bouncycastle.asn1.x509.Extension::authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(org.bouncycastle.asn1.x509.SubjectPublicKeyInfo.getInstance(iss.getPublicKey.encoded)))
 
         else
 
@@ -48,7 +48,8 @@ module Ccrypto
 
         certGen.addExtension(org.bouncycastle.asn1.x509.Extension::keyUsage, false, org.bouncycastle.asn1.x509.KeyUsage.new(to_keyusage))
 
-        certGen.addExtension(org.bouncycastle.asn1.x509.Extension::extendedKeyUsage, false, org.bouncycastle.asn1.x509.ExtendedKeyUsage.new(to_extkeyusage))
+        extKeyUsage = to_extkeyusage
+        certGen.addExtension(org.bouncycastle.asn1.x509.Extension::extendedKeyUsage, false, org.bouncycastle.asn1.x509.ExtendedKeyUsage.new(extKeyUsage)) if not extKeyUsage.is_empty?
 
         altName = []
         cp.email.each do |e|
@@ -94,6 +95,8 @@ module Ccrypto
 
         cert = org.bouncycastle.cert.jcajce.JcaX509CertificateConverter.new().setProvider(prov).getCertificate(certGen.build(signer))
         cert
+
+        Ccrypto::X509Cert.new(cert)
 
       end
 

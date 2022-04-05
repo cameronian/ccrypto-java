@@ -1,6 +1,6 @@
 GIT
   remote: ccrypto
-  revision: bf01efd2ddaccac3ee4caab6533990e3e85d1934
+  revision: e1fbd3dfa68e652d96b184f055cd18f5530dbd7d
   branch: main
   specs:
     ccrypto (0.1.0)
@@ -37,6 +37,7 @@ GEM
       tlogger
 
 PLATFORMS
+  universal-java-1.8
   universal-java-11
   x86_64-linux
 

@@ -17,6 +17,7 @@ require_relative "java/version"
 require_relative 'provider'
 
 require_relative 'java/ext/secret_key'
+require_relative 'java/ext/x509_cert'
 
 module Ccrypto
   module Java

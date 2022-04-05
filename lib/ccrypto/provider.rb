@@ -34,9 +34,11 @@ module  Ccrypto
         config = args.first
 
 
-        if config.is_a?(Class)
+        if config.is_a?(Class) or config.is_a?(Module)
           if config == Ccrypto::ECCConfig
             ECCEngine
+          elsif config == Ccrypto::ECCKeyBundle
+            ECCKeyBundle
           elsif config == Ccrypto::DigestConfig
             DigestEngine
           elsif config == Ccrypto::SecureRandomConfig

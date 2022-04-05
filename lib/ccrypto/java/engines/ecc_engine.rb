@@ -20,7 +20,7 @@ module Ccrypto
     end
 
     class ECCKeyBundle
-      include Ccrypto::KeyBundle
+      include Ccrypto::ECCKeyBundle
       include TR::CondUtils
 
       def initialize(kp)
@@ -60,12 +60,156 @@ module Ccrypto
         @keypair.public.encoded == pubKey.encoded
       end
 
-      def logger
+      def to_storage(type, &block)
+        
+        case type
+        when :p12, :pkcs12
+          raise KeypairEngineException, "block is required" if not block
+          prof = block.call(:jce_provider)
+          if not_empty?(prof)
+            ks = java.security.KeyStore.getInstance("PKCS12", prof)
+          else
+            ks = java.security.KeyStore.getInstance("PKCS12")
+          end
+
+          ks.load(nil,nil)
+
+          gcert = block.call(:cert)
+          raise KeypairEngineException, "PKCS12 requires the X.509 certificate" if gcert.nil? or is_empty?(gcert)
+
+          ca = block.call(:certchain) || [cert]
+          ca = ca.unshift(gcert) if not ca.first.equal?(gcert)
+          ca = ca.collect { |c|
+            Ccrypto::X509Cert.to_java_cert(c) 
+          }
+
+          pass = block.call(:p12_pass)
+          name = block.call(:p12_name) || "Ccrypto ECC"
+
+          raise KeypairEngineException, "Password must be available" if is_empty?(pass)
+
+          ks.setKeyEntry(name, @keypair.private, pass.to_java.toCharArray, ca.to_java(java.security.cert.Certificate))
+
+          baos = java.io.ByteArrayOutputStream.new
+          ks.store(baos, pass.to_java.toCharArray)
+          
+          baos.toByteArray
+
+        when :jks
+          raise KeypairEngineException, "block is required" if not block
+          prof = block.call(:jce_provider)
+          if not_empty?(prof)
+            ks = java.security.KeyStore.getInstance("JKS", prof)
+          else
+            ks = java.security.KeyStore.getInstance("JKS")
+          end
+
+          ks.load(nil,nil)
+
+          gcert = block.call(:cert)
+          raise KeypairEngineException, "JKS requires the X.509 certificate" if gcert.nil? or is_empty?(gcert)
+
+          cert = Ccrypto::X509Cert.to_java_cert(gcert)
+          ca = block.call(:certchain) || [cert]
+          ca = ca.collect { |c| Ccrypto::X509Cert.to_java_cert(c) }
+
+          pass = block.call(:jks_pass)
+          name = block.call(:jks_name) || "Ccrypto ECC"
+
+          raise KeypairEngineException, "Password must be available" if is_empty?(pass)
+
+          ks.setKeyEntry(name, @keypair, pass.to_java.toCharArray, ca.to_java(java.security.cert.Certificate))
+
+          baos = java.io.ByteArrayOutputStream.new
+          ks.store(baos, pass.to_java.toCharArray)
+          
+          baos.toByteArray
+          
+        when :pem
+
+
+        else
+          raise KeypairEngineException, "Unknown storage type #{type}"
+        end
+
+      end
+
+      def self.from_storage(bin, &block)
+       
+        if is_pem?(bin)
+        else
+          raise KeypairEngineException, "block is required" if not block
+
+          prof = block.call(:jce_provider)
+          if not_empty?(prof)
+            ks = java.security.KeyStore.getInstance("PKCS12", prof)
+          else
+            ks = java.security.KeyStore.getInstance("PKCS12")
+          end
+
+          pass = block.call(:p12_pass)
+          name = block.call(:p12_name)
+
+          case bin
+          when String
+            bbin = bin.to_java_bytes
+          when ::Java::byte[]
+            bbin = bin
+          else
+            raise KeypairEngineException, "Java byte array is expected. Given #{bin.class}"
+          end
+
+          ks.load(java.io.ByteArrayInputStream.new(bbin),pass.to_java.toCharArray)
+
+          name = ks.aliases.to_a.first if is_empty?(name)
+
+          userCert = Ccrypto::X509Cert.new(ks.getCertificate(name))
+          chain = ks.get_certificate_chain(name).collect { |c| Ccrypto::X509Cert.new(c) }
+          chain = chain.delete_if { |c| c.equal?(userCert) }
+
+          [Ccrypto::Java::ECCKeyBundle.new(ks.getKey(name, pass.to_java.toCharArray)), userCert, chain]
+
+
+        end
+
+      end
+
+      def self.is_pem?(bin)
+        begin
+          (bin =~ /BEGIN/) != nil
+        rescue ArgumentError => ex
+          false
+        end
+      end
+
+      def equal?(kp)
+        case kp
+        when Ccrypto::ECCKeyBundle
+          @keypair.encoded == kp.private.encoded
+        else
+          false
+        end
+      end
+
+      def self.logger
         if @logger.nil?
           @logger = Tlogger.new
           @logger.tag = :ecckeybundle
         end
         @logger
+      end
+      def logger
+        self.class.logger
+      end
+
+      def method_missing(mtd, *args, &block)
+        logger.debug "Sending to native #{mtd}"
+        @keypair.send(mtd, *args, &block)
+      end
+
+      def respond_to_missing?(mtd, incPriv = false)
+        logger.debug "Respond to missing #{mtd}"
+        @keypair.respond_to?(mtd)
       end
 
     end
