@@ -109,16 +109,18 @@ module Ccrypto
           gcert = block.call(:cert)
           raise KeypairEngineException, "JKS requires the X.509 certificate" if gcert.nil? or is_empty?(gcert)
 
-          cert = Ccrypto::X509Cert.to_java_cert(gcert)
           ca = block.call(:certchain) || [cert]
-          ca = ca.collect { |c| Ccrypto::X509Cert.to_java_cert(c) }
+          ca = ca.unshift(gcert) if not ca.first.equal?(gcert)
+          ca = ca.collect { |c|
+            Ccrypto::X509Cert.to_java_cert(c) 
+          }
 
           pass = block.call(:jks_pass)
           name = block.call(:jks_name) || "Ccrypto ECC"
 
           raise KeypairEngineException, "Password must be available" if is_empty?(pass)
 
-          ks.setKeyEntry(name, @keypair, pass.to_java.toCharArray, ca.to_java(java.security.cert.Certificate))
+          ks.setKeyEntry(name, @keypair.private, pass.to_java.toCharArray, ca.to_java(java.security.cert.Certificate))
 
           baos = java.io.ByteArrayOutputStream.new
           ks.store(baos, pass.to_java.toCharArray)
@@ -147,8 +149,8 @@ module Ccrypto
             ks = java.security.KeyStore.getInstance("PKCS12")
           end
 
-          pass = block.call(:p12_pass)
-          name = block.call(:p12_name)
+          pass = block.call(:p12_pass) || block.call(:jks_pass)
+          name = block.call(:p12_name) || block.call(:jks_name)
 
           case bin
           when String
@@ -168,7 +170,6 @@ module Ccrypto
           chain = chain.delete_if { |c| c.equal?(userCert) }
 
           [Ccrypto::Java::ECCKeyBundle.new(ks.getKey(name, pass.to_java.toCharArray)), userCert, chain]
-
 
         end
 

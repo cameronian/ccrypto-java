@@ -259,6 +259,46 @@ RSpec.describe "X509 engine spec for Java" do
       expect((cc.equal?(rootCert) or cc.equal?(subCACert) or cc.equal?(leafCACert) )).to be true
     end
 
+
+    File.open("enduser.jks","wb") do |f|
+      ksb = subscriber.to_storage(:jks) do |key|
+        case key
+        when :cert
+          userCert
+        when :certchain
+          # start from the leaf until to root
+          [leafCACert, subCACert, rootCert] 
+        when :jks_pass
+          "password"
+        when :jks_name
+          "Test End User Certificate"
+        end
+      end
+
+      f.write ksb
+    end
+
+    kpfc = Ccrypto::AlgoFactory.engine(Ccrypto::ECCKeyBundle)
+    expect {
+      rkp = kpfc.from_storage(File.read("enduser.jks"))
+    }.to raise_exception(Ccrypto::KeypairEngineException)
+
+    rrkp,rrcert,rrchain = kpfc.from_storage(File.read("enduser.jks")) do |key|
+      case key
+      when :jks_pass
+        "password"
+      end
+    end
+    expect(rrkp != nil).to be true
+    expect(rrkp.equal?(subscriber)).to be true
+    expect(rrcert.equal?(userCert)).to be true
+
+    rrchain.each do |cc|
+      expect((cc.equal?(rootCert) or cc.equal?(subCACert) or cc.equal?(leafCACert) )).to be true
+    end
+
+
+
   end
 
 
