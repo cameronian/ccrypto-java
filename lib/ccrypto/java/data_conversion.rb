@@ -18,6 +18,11 @@ module Ccrypto
         String.from_java_bytes(java.util.Base64.encoder.encode(bin))
       end
       # end to_b64
+      #
+
+      def to_b64_mime(bin)
+        String.from_java_bytes(java.util.Base64.mime_encoder.encode(bin))
+      end
 
       def from_b64(str)
         java.util.Base64.decoder.decode(str)

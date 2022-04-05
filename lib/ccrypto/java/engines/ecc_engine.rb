@@ -1,4 +1,5 @@
 
+require_relative '../data_conversion'
 
 module Ccrypto
   module Java
@@ -22,6 +23,7 @@ module Ccrypto
     class ECCKeyBundle
       include Ccrypto::ECCKeyBundle
       include TR::CondUtils
+      include DataConversion
 
       def initialize(kp)
         @keypair = kp
@@ -129,6 +131,15 @@ module Ccrypto
           
         when :pem
 
+          header = "-----BEGIN EC PRIVATE KEY-----\n"
+          footer = "\n-----END EC PRIVATE KEY-----"
+
+          out = StringIO.new
+          out.write header
+          out.write to_b64_mime(@keypair.private.encoded)
+          out.write footer
+
+          out.string
 
         else
           raise KeypairEngineException, "Unknown storage type #{type}"

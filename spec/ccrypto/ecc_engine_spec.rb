@@ -44,10 +44,18 @@ RSpec.describe "ECC Engine Spec for Java" do
     rpekb = ek.public_key.to_bin 
     rpek = ek.public_key.class.to_key(rpekb)
 
-    p rpek.to_bin
-    p rpekb
-
     expect(rpek.to_bin == rpekb)
+
+  end
+
+  it 'write private key to PEM and read it back' do
+    
+    ecc = Ccrypto::AlgoFactory.engine(Ccrypto::ECCConfig.new)
+
+    ecKey = ecc.generate_keypair
+
+    res = ecKey.to_storage(:pem)
+    p res
 
   end
 
