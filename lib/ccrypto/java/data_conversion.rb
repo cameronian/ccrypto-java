@@ -62,6 +62,15 @@ module Ccrypto
         end
       end
 
+      # 
+      # Add the methods to class level
+      #
+      def self.included(klass)
+        klass.class_eval <<-END
+          extend Ccrypto::Java::DataConversion
+        END
+      end
+
     end
   end
 end

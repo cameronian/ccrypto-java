@@ -59,4 +59,20 @@ RSpec.describe "ECC Engine Spec for Java" do
 
   end
 
+  it 'sign data with ECC keypair' do
+
+    conf = Ccrypto::ECCConfig.new("secp256k1")
+    kpf = Ccrypto::AlgoFactory.engine(conf)
+    kp = kpf.generate_keypair
+
+    conf.keypair = kp
+    data_to_be_signed = "testing 123" * 128
+    res = kpf.sign(data_to_be_signed)
+    expect(res).not_to be nil
+
+    vres = Ccrypto::AlgoFactory.engine(Ccrypto::ECCConfig).verify(kp.public_key, data_to_be_signed, res)
+    expect(vres).to be true
+    
+  end
+
 end

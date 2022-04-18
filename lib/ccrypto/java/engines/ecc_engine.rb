@@ -228,6 +228,7 @@ module Ccrypto
 
     class ECCEngine
       include TR::CondUtils
+      include DataConversion
 
       def self.supported_curves
         if @curves.nil?
@@ -286,7 +287,7 @@ module Ccrypto
         sign = java.security.Signature.getInstance("SHA256WithECDSA")
         sign.initSign(kp.private_key)
         logger.debug "Signing data : #{val}" 
-        sign.update(val)
+        sign.update(to_java_bytes(val))
         sign.sign
       end
 
@@ -294,8 +295,8 @@ module Ccrypto
         ver = java.security.Signature.getInstance("SHA256WithECDSA")
         ver.initVerify(pubKey)
         logger.debug "Verifing data : #{val}"
-        ver.update(val)
-        ver.verify(sign)
+        ver.update(to_java_bytes(val))
+        ver.verify(to_java_bytes(sign))
       end
 
       def logger
