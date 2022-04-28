@@ -21,6 +21,10 @@ require_relative 'java/engines/data_conversion_engine'
 
 require_relative 'java/engines/secret_sharing_engine'
 
+require_relative 'java/engines/pkcs7_engine'
+
+require_relative 'java/engines/rsa_engine'
+
 module  Ccrypto
   module Java
     class Provider
@@ -37,6 +41,8 @@ module  Ccrypto
         if config.is_a?(Class) or config.is_a?(Module)
           if config == Ccrypto::ECCConfig
             ECCEngine
+          elsif config == Ccrypto::RSAConfig
+            RSAEngine
           elsif config == Ccrypto::ECCKeyBundle
             ECCKeyBundle
           elsif config == Ccrypto::DigestConfig
@@ -58,6 +64,8 @@ module  Ccrypto
           case config
           when Ccrypto::ECCConfig
             ECCEngine.new(*args, &block)
+          when Ccrypto::RSAConfig
+            RSAEngine.new(*args, &block)
           when Ccrypto::DigestConfig
             DigestEngine.instance(*args, &block)
           when Ccrypto::X509::CertProfile
@@ -72,6 +80,8 @@ module  Ccrypto
             HMACEngine.new(*args, &block)
           when Ccrypto::SecretSharingConfig
             SecretSharingEngine.new(*args,&block)
+          when Ccrypto::PKCS7Config
+            PKCS7Engine.new(*args, &block)
           else
             raise CcryptoProviderException, "Config instance '#{config}' is not supported for provider '#{self.provider_name}'"
           end

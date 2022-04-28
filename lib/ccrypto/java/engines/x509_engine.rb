@@ -14,10 +14,15 @@ module Ccrypto
         cp = @certProfile
 
         prov = Ccrypto::Java::JCEProvider::DEFProv
+        signSpec = nil
         if block
           uprov = block.call(:jce_provider_name)
           prov if not_empty?(uprov)
+          signSpec = block.call(:sign_spec)
+          signHash = block.call(:sign_hash)
         end
+
+        signHash = :sha256 if is_empty?(signHash)
 
         validFrom = cp.not_before 
         validTo = cp.not_after
@@ -90,7 +95,19 @@ module Ccrypto
 
         certGen.addExtension(org.bouncycastle.asn1.x509.Extension::subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(org.bouncycastle.asn1.x509.SubjectPublicKeyInfo.getInstance(cp.public_key.to_bin)))
 
-        signAlgo = "SHA256WithECDSA"
+        if is_empty?(signSpec)
+          case issuerKey.private_key
+          when org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey
+            signAlgo = "#{signHash.to_s.upcase}WithECDSA"
+          when java.security.interfaces.RSAPrivateKey
+            signAlgo = "#{signHash.to_s.upcase}WithRSA"
+          else
+            raise X509EngineException, "Unsupported issuer key type '#{issuerKey.private_key}'"
+          end
+        else
+        end
+
+        #signAlgo = "SHA256WithECDSA"
         signer = org.bouncycastle.operator.jcajce.JcaContentSignerBuilder.new(signAlgo).setProvider(prov).build(issuerKey.private_key)
 
         cert = org.bouncycastle.cert.jcajce.JcaX509CertificateConverter.new().setProvider(prov).getCertificate(certGen.build(signer))
