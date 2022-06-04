@@ -1,6 +1,8 @@
 
 require_relative '../data_conversion'
 
+require_relative '../keybundle_store/pkcs12'
+
 module Ccrypto
   module Java
 
@@ -25,6 +27,8 @@ module Ccrypto
       include TR::CondUtils
       include DataConversion
 
+      include PKCS12
+
       def initialize(kp)
         @keypair = kp
       end
@@ -41,7 +45,7 @@ module Ccrypto
       end
 
       def private_key
-        @keypair.private
+        ECCPrivateKey.new(@keypair.private)
       end
 
       def derive_dh_shared_secret(pubKey, &block)
@@ -66,69 +70,27 @@ module Ccrypto
         
         case type
         when :p12, :pkcs12
-          raise KeypairEngineException, "block is required" if not block
-          prof = block.call(:jce_provider)
-          if not_empty?(prof)
-            ks = java.security.KeyStore.getInstance("PKCS12", prof)
-          else
-            ks = java.security.KeyStore.getInstance("PKCS12")
+          to_pkcs12 do |key|
+            case key
+            when :keypair
+              @keypair
+            else
+              block.call(key) if block
+            end
           end
-
-          ks.load(nil,nil)
-
-          gcert = block.call(:cert)
-          raise KeypairEngineException, "PKCS12 requires the X.509 certificate" if gcert.nil? or is_empty?(gcert)
-
-          ca = block.call(:certchain) || [cert]
-          ca = ca.unshift(gcert) if not ca.first.equal?(gcert)
-          ca = ca.collect { |c|
-            Ccrypto::X509Cert.to_java_cert(c) 
-          }
-
-          pass = block.call(:p12_pass)
-          name = block.call(:p12_name) || "Ccrypto ECC"
-
-          raise KeypairEngineException, "Password must be available" if is_empty?(pass)
-
-          ks.setKeyEntry(name, @keypair.private, pass.to_java.toCharArray, ca.to_java(java.security.cert.Certificate))
-
-          baos = java.io.ByteArrayOutputStream.new
-          ks.store(baos, pass.to_java.toCharArray)
-          
-          baos.toByteArray
 
         when :jks
-          raise KeypairEngineException, "block is required" if not block
-          prof = block.call(:jce_provider)
-          if not_empty?(prof)
-            ks = java.security.KeyStore.getInstance("JKS", prof)
-          else
-            ks = java.security.KeyStore.getInstance("JKS")
+          to_pkcs12 do |key|
+            case key
+            when :storeType
+              "JKS"
+            when :keypair
+              @keypair
+            else
+              block.call(key) if key
+            end
           end
-
-          ks.load(nil,nil)
-
-          gcert = block.call(:cert)
-          raise KeypairEngineException, "JKS requires the X.509 certificate" if gcert.nil? or is_empty?(gcert)
-
-          ca = block.call(:certchain) || [cert]
-          ca = ca.unshift(gcert) if not ca.first.equal?(gcert)
-          ca = ca.collect { |c|
-            Ccrypto::X509Cert.to_java_cert(c) 
-          }
-
-          pass = block.call(:jks_pass)
-          name = block.call(:jks_name) || "Ccrypto ECC"
-
-          raise KeypairEngineException, "Password must be available" if is_empty?(pass)
-
-          ks.setKeyEntry(name, @keypair.private, pass.to_java.toCharArray, ca.to_java(java.security.cert.Certificate))
-
-          baos = java.io.ByteArrayOutputStream.new
-          ks.store(baos, pass.to_java.toCharArray)
-          
-          baos.toByteArray
-          
+         
         when :pem
 
           header = "-----BEGIN EC PRIVATE KEY-----\n"
@@ -151,37 +113,7 @@ module Ccrypto
        
         if is_pem?(bin)
         else
-          raise KeypairEngineException, "block is required" if not block
-
-          prof = block.call(:jce_provider)
-          if not_empty?(prof)
-            ks = java.security.KeyStore.getInstance("PKCS12", prof)
-          else
-            ks = java.security.KeyStore.getInstance("PKCS12")
-          end
-
-          pass = block.call(:p12_pass) || block.call(:jks_pass)
-          name = block.call(:p12_name) || block.call(:jks_name)
-
-          case bin
-          when String
-            bbin = bin.to_java_bytes
-          when ::Java::byte[]
-            bbin = bin
-          else
-            raise KeypairEngineException, "Java byte array is expected. Given #{bin.class}"
-          end
-
-          ks.load(java.io.ByteArrayInputStream.new(bbin),pass.to_java.toCharArray)
-
-          name = ks.aliases.to_a.first if is_empty?(name)
-
-          userCert = Ccrypto::X509Cert.new(ks.getCertificate(name))
-          chain = ks.get_certificate_chain(name).collect { |c| Ccrypto::X509Cert.new(c) }
-          chain = chain.delete_if { |c| c.equal?(userCert) }
-
-          [Ccrypto::Java::ECCKeyBundle.new(ks.getKey(name, pass.to_java.toCharArray)), userCert, chain]
-
+          from_pkcs12(bin, &block)
         end
 
       end
@@ -232,7 +164,7 @@ module Ccrypto
 
       def self.supported_curves
         if @curves.nil?
-          @curves = org.bouncycastle.asn1.x9.ECNamedCurveTable.getNames.to_a.map { |c| Ccrypto::ECCConfig.new(c) }
+          @curves = org.bouncycastle.asn1.x9.ECNamedCurveTable.getNames.sort.to_a.map { |c| Ccrypto::ECCConfig.new(c) }
         end
         @curves
       end
@@ -279,7 +211,7 @@ module Ccrypto
 
       end
 
-      def sign(val)
+      def sign(val, &block)
         raise KeypairEngineException, "Keypair is required" if @config.keypair.nil?
         raise KeypairEngineException, "ECC keypair is required. Given #{@config.keypair}" if not @config.keypair.is_a?(ECCKeyBundle)
         kp = @config.keypair
@@ -287,7 +219,16 @@ module Ccrypto
         sign = java.security.Signature.getInstance("SHA256WithECDSA")
         sign.initSign(kp.private_key)
         logger.debug "Signing data : #{val}" 
-        sign.update(to_java_bytes(val))
+        case val
+        when java.io.InputStream
+          buf = Java::byte[102400].new
+          while((read = val.read(buf, 0, buf.length)) != nil)
+            sign.update(buf,0,read)
+          end
+        else
+          sign.update(to_java_bytes(val))
+        end
+
         sign.sign
       end
 
@@ -295,7 +236,16 @@ module Ccrypto
         ver = java.security.Signature.getInstance("SHA256WithECDSA")
         ver.initVerify(pubKey)
         logger.debug "Verifing data : #{val}"
-        ver.update(to_java_bytes(val))
+        case val
+        when java.io.InputStream
+          buf = Java::byte[102400].new
+          while((read = val.read(buf, 0 ,buf.length)) != nil)
+            ver.update(buf,0, read)
+          end
+        else
+          ver.update(to_java_bytes(val))
+        end
+
         ver.verify(to_java_bytes(sign))
       end
 

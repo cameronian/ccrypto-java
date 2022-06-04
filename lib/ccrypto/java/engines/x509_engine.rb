@@ -13,6 +13,9 @@ module Ccrypto
 
         cp = @certProfile
 
+        raise X509EngineException, "Issuer key must be given" if issuerKey.nil?
+        raise X509EngineException, "Issuer key must be a private key. Given #{issuerKey}" if not issuerKey.is_a?(Ccrypto::PrivateKey)
+
         prov = Ccrypto::Java::JCEProvider::DEFProv
         signSpec = nil
         if block
@@ -95,20 +98,30 @@ module Ccrypto
 
         certGen.addExtension(org.bouncycastle.asn1.x509.Extension::subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(org.bouncycastle.asn1.x509.SubjectPublicKeyInfo.getInstance(cp.public_key.to_bin)))
 
+        signAlgo = nil
         if is_empty?(signSpec)
-          case issuerKey.private_key
-          when org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey
-            signAlgo = "#{signHash.to_s.upcase}WithECDSA"
-          when java.security.interfaces.RSAPrivateKey
-            signAlgo = "#{signHash.to_s.upcase}WithRSA"
-          else
-            raise X509EngineException, "Unsupported issuer key type '#{issuerKey.private_key}'"
+          gKey = issuerKey
+          loop do
+            case gKey
+            when org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey
+              signAlgo = "#{signHash.to_s.upcase}WithECDSA"
+              break
+            when java.security.interfaces.RSAPrivateKey , org.bouncycastle.jcajce.provider.asymmetric.rsa.BCRSAPrivateCrtKey
+              signAlgo = "#{signHash.to_s.upcase}WithRSA"
+              break
+            when Ccrypto::PrivateKey
+              logger.debug "Found Ccrypto::Private key #{gKey}."
+              gKey = gKey.native_privKey
+            else
+              raise X509EngineException, "Unsupported issuer key type '#{gKey}'"
+            end
           end
         else
         end
 
         #signAlgo = "SHA256WithECDSA"
-        signer = org.bouncycastle.operator.jcajce.JcaContentSignerBuilder.new(signAlgo).setProvider(prov).build(issuerKey.private_key)
+        #signer = org.bouncycastle.operator.jcajce.JcaContentSignerBuilder.new(signAlgo).setProvider(prov).build(issuerKey.private_key)
+        signer = org.bouncycastle.operator.jcajce.JcaContentSignerBuilder.new(signAlgo).setProvider(prov).build(gKey)
 
         cert = org.bouncycastle.cert.jcajce.JcaX509CertificateConverter.new().setProvider(prov).getCertificate(certGen.build(signer))
         cert
@@ -189,6 +202,14 @@ module Ccrypto
         end
 
         kur
+      end
+
+      def logger
+        if @logger.nil?
+          @logger = Tlogger.new
+          @logger.tag = :x509_engine
+        end
+        @logger
       end
 
     end

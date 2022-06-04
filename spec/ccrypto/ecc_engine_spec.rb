@@ -10,6 +10,7 @@ RSpec.describe "ECC Engine Spec for Java" do
     expect(ecc != nil).to be true
 
     ecc.supported_curves.each do |c|
+      puts c.curve
       kp = Ccrypto::AlgoFactory.engine(c).generate_keypair
       expect(kp != nil).to be true
       expect(kp.is_a?(Ccrypto::KeyBundle)).to be true

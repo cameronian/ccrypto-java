@@ -1,8 +1,5 @@
 
 require_relative '../data_conversion'
-'
-
-'
 
 module Ccrypto
   module Java
@@ -26,7 +23,7 @@ module Ccrypto
         raise PKCS7EngineException, "signerCert is required for PKCS7 sign operation" if is_empty?(@config.signerCert)
         raise PKCS7EngineException, "Given signerCert must be a Ccrypto::X509Cert object" if not @config.signerCert.is_a?(Ccrypto::X509Cert)
 
-        privKey = @config.keybundle.private_key
+        privKey = @config.private_key
 
         prov = nil
         signHash = nil
@@ -67,17 +64,25 @@ module Ccrypto
         gen = org.bouncycastle.cms.CMSSignedDataStreamGenerator.new
 
         if is_empty?(signSpec)
-          case privKey
-          when ::Java::OrgBouncycastleJcajceProviderAsymmetricEc::BCECPrivateKey
-            signSpec = "#{signHash.upcase}withECDSA"
-          when java.security.interfaces.RSAPrivateKey
-            signSpec = "#{signHash.to_s.upcase}withRSA"
-          else
-            raise PKCS7EngineException, "Unknown private key type '#{privKey.class}' to derive the hash algo from"
+          gKey = privKey
+          loop do
+            case gKey
+            when ::Java::OrgBouncycastleJcajceProviderAsymmetricEc::BCECPrivateKey
+              signSpec = "#{signHash.upcase}withECDSA"
+              break
+            when java.security.interfaces.RSAPrivateKey
+              signSpec = "#{signHash.to_s.upcase}withRSA"
+              break
+            when Ccrypto::PrivateKey
+              gKey = gKey.native_privKey
+            else
+              raise PKCS7EngineException, "Unknown private key type '#{gKey}' to derive the hash algo from"
+            end
           end
         end
 
-        signer = org.bouncycastle.operator.jcajce.JcaContentSignerBuilder.new(signSpec).setProvider(prov).build(privKey)
+        #signer = org.bouncycastle.operator.jcajce.JcaContentSignerBuilder.new(signSpec).setProvider(prov).build(privKey)
+        signer = org.bouncycastle.operator.jcajce.JcaContentSignerBuilder.new(signSpec).setProvider(prov).build(gKey)
         infoGen = org.bouncycastle.cms.jcajce.JcaSignerInfoGeneratorBuilder.new(org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder.new.setProvider(prov).build()).build(signer, @config.signerCert.nativeX509)
         gen.addSignerInfoGenerator(infoGen)
         
@@ -363,7 +368,7 @@ module Ccrypto
         os = java.io.ByteArrayOutputStream.new if os.nil?
         intBufSize = 1024000 if is_empty?(intBufSize)
 
-        kt = decryption_key_to_recipient(@config.keybundle.private_key)
+        kt = decryption_key_to_recipient(@config.private_key)
 
         lastEx = nil
         recipients = envp.getRecipientInfos.getRecipients
@@ -413,8 +418,10 @@ module Ccrypto
       end
 
       def validate_key_must_exist(ops)
-        raise PKCS7EngineException, "Keybundle is required for PKCS7 #{ops}" if is_empty?(@config.keybundle)
-        raise PKCS7EngineException, "Given key must be a Ccrypto::KeyBundle object" if not @config.keybundle.is_a?(Ccrypto::KeyBundle)
+        #raise PKCS7EngineException, "Keybundle is required for PKCS7 #{ops}" if is_empty?(@config.keybundle)
+        #raise PKCS7EngineException, "Given key must be a Ccrypto::KeyBundle object" if not @config.keybundle.is_a?(Ccrypto::KeyBundle)
+        raise PKCS7EngineException, "Private key is required for PKCS7 #{ops}" if @config.private_key.nil?
+        raise PKCS7EngineException, "Given private key must be a Ccrypto::PrivateKey object. Given #{@config.private_key}" if not @config.private_key.is_a?(Ccrypto::PrivateKey)
       end
 
       private
@@ -495,12 +502,22 @@ module Ccrypto
       end
 
        def decryption_key_to_recipient(decKey, prov = Ccrypto::Java::JCEProvider::DEFProv)
-        case decKey
-        when java.security.PrivateKey
-          org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient.new(decKey).setProvider(prov)
-        else
-          raise PKCS7EngineException, "Unsupported decryption key type '#{decKey}'"
-        end
+
+         res = nil
+         gKey = decKey
+         loop do
+           case gKey
+           when java.security.PrivateKey
+             res = org.bouncycastle.cms.jcajce.JceKeyTransEnvelopedRecipient.new(gKey).setProvider(prov)
+             break
+           when Ccrypto::PrivateKey
+             gKey = gKey.native_privKey
+           else
+             raise PKCS7EngineException, "Unsupported decryption key type '#{decKey}'"
+           end
+         end
+
+         res
 
         #if Pkernel::KeyPair.is_private_key?(obj)
         #  GcryptoBcCms::GConf.instance.glog.debug "Given decryption artifacts is private key"

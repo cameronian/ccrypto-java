@@ -45,6 +45,8 @@ module  Ccrypto
             RSAEngine
           elsif config == Ccrypto::ECCKeyBundle
             ECCKeyBundle
+          elsif config == Ccrypto::RSAKeyBundle
+            RSAKeyBundle
           elsif config == Ccrypto::DigestConfig
             DigestEngine
           elsif config == Ccrypto::SecureRandomConfig
