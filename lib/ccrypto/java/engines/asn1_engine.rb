@@ -12,6 +12,10 @@ module Ccrypto
       include TR::CondUtils
       extend DataConversion
 
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :j_asn1
+
       def self.build(*args,&block)
         type = args.first
         val = args[1]
@@ -71,7 +75,7 @@ module Ccrypto
       def self.to_value(*args, &block)
 
         val = args.first
-        #logger.debug "Received #{val}"
+        #teLogger.debug "Received #{val}"
 
         expectedType = args[1]
 
@@ -86,7 +90,7 @@ module Ccrypto
         end
         #raise ASN1EngineException, "Byte array is expected" if not val.is_a?(::Java::byte[])
 
-        #logger.debug "Tag : #{tag} / #{tag.class}"
+        #teLogger.debug "Tag : #{tag} / #{tag.class}"
 
         case tag
         when org.bouncycastle.asn1.ASN1ObjectIdentifier
@@ -146,14 +150,6 @@ module Ccrypto
         end
       end
       
-      def self.logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :asn1_eng
-        end
-        @logger
-      end
-
 
     end
 

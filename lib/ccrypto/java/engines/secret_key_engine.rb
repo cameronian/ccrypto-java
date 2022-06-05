@@ -3,6 +3,9 @@
 module Ccrypto
   module Java
     class SecretKeyEngine
+
+      include TeLogger::TeLogHelper
+      teLogger_tag :j_secretkey
      
       def self.generate(*args, &block)
         config = args.first
@@ -15,33 +18,25 @@ module Ccrypto
         end
 
         if kgProv.nil?
-          logger.debug "KeyGen using algo #{config.algo.to_s} with null provider"
+          teLogger.debug "KeyGen using algo #{config.algo.to_s} with null provider"
           keyGen = javax.crypto.KeyGenerator.getInstance(config.algo.to_s)
         else
-          logger.debug "KeyGen using algo #{config.algo.to_s} with provider #{kgProv.is_a?(String) ? kgProv : kgProv.name}"
+          teLogger.debug "KeyGen using algo #{config.algo.to_s} with provider #{kgProv.is_a?(String) ? kgProv : kgProv.name}"
           keyGen = javax.crypto.KeyGenerator.getInstance(config.algo.to_s, kgProv)
         end
 
         if ranProv.nil?
-          logger.debug "Init KeyGen with keysize #{config.keysize.to_i}"
+          teLogger.debug "Init KeyGen with keysize #{config.keysize.to_i}"
           keyGen.init(config.keysize.to_i)
         else
-          logger.debug "Init KeyGen with keysize #{config.keysize.to_i} with provider #{ranProv.is_a?(String) ? ranProv : ranProv.name}"
+          teLogger.debug "Init KeyGen with keysize #{config.keysize.to_i} with provider #{ranProv.is_a?(String) ? ranProv : ranProv.name}"
           keyGen.init(config.keysize.to_i, ranProv)
         end
 
         key = keyGen.generateKey
-        logger.debug "Secret key #{config} generated"
+        teLogger.debug "Secret key #{config} generated"
         Ccrypto::SecretKey.new(config.algo, key)
 
-      end
-
-      def self.logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :sk_eng
-        end
-        @logger
       end
 
     end

@@ -9,6 +9,7 @@ require_relative 'java/engines/cipher_engine'
 
 require_relative 'java/engines/secret_key_engine'
 require_relative 'java/engines/hmac_engine'
+require_relative 'java/engines/hkdf_engine'
 
 require_relative 'java/utils/comparator'
 require_relative 'java/utils/memory_buffer'
@@ -74,8 +75,8 @@ module  Ccrypto
             X509Engine.new(*args,&block)
           when Ccrypto::ScryptConfig
             ScryptEngine.new(*args,&block)
-          #when Ccrypto::HKDFConfig
-          #  HKDFEngine.new(*args,&block)
+          when Ccrypto::HKDFConfig
+            HKDFEngine.new(*args,&block)
           when Ccrypto::CipherConfig
             CipherEngine.new(*args, &block)
           when Ccrypto::HMACConfig

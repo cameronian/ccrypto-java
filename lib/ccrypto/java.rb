@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'ccrypto'
-require 'tlogger'
+require 'teLogger'
 require 'toolrack'
 
 Dir.glob(File.join(File.dirname(__FILE__),"..","..","jars","*.jar")).each do |f|

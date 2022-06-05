@@ -7,6 +7,10 @@ module Ccrypto
       include DataConversion
       include TR::CondUtils
 
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :j_compression
+
       def initialize(*args, &block)
 
         @config = args.first
@@ -35,20 +39,20 @@ module Ccrypto
 
         case @config.level
         when :best_compression
-          logger.debug "Compression with best compression"
+          teLogger.debug "Compression with best compression"
           @eng = java.util.zip.Deflater.new(java.util.zip.Deflater::BEST_COMPRESSION)
         when :best_speed
-          logger.debug "Compression with best speed"
+          teLogger.debug "Compression with best speed"
           @eng = java.util.zip.Deflater.new(java.util.zip.Deflater::BEST_SPEED)
         when :no_compression
-          logger.debug "No compression"
+          teLogger.debug "No compression"
           @eng = java.util.zip.Deflater.new(java.util.zip.Deflater::NO_COMPRESSION)
         else
-          logger.debug "Default compression"
+          teLogger.debug "Default compression"
           @eng = java.util.zip.Deflater.new(java.util.zip.Deflater::DEFAULT_COMPRESSION)
         end
 
-        logger.debug "Default strategy"
+        teLogger.debug "Default strategy"
         @eng.setStrategy(java.util.zip.Deflater::DEFAULT_STRATEGY)
 
         @os = java.io.ByteArrayOutputStream.new
@@ -58,8 +62,8 @@ module Ccrypto
       # returns compressed output length
       def update(val)
         if val.length > 0
-          logger.debug "Given #{val.length} bytes for compression"
-          #logger.debug "Write ready-to-compress data : #{val.length}"
+          teLogger.debug "Given #{val.length} bytes for compression"
+          #teLogger.debug "Write ready-to-compress data : #{val.length}"
           #@in.write(to_java_bytes(val))
 
           @eng.setInput(to_java_bytes(val))
@@ -81,14 +85,6 @@ module Ccrypto
 
       def final
      
-      end
-
-      def logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :comp
-        end
-        @logger
       end
 
     end

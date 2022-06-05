@@ -30,6 +30,10 @@ module Ccrypto
       include PKCS12
       #include PEMStore
 
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :j_rsa_keybundle
+
       def initialize(kp)
         @nativeKeypair = kp
       end
@@ -102,24 +106,13 @@ module Ccrypto
         end
       end
 
-      def self.logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :rsaKeyBundle
-        end
-        @logger
-      end
-      def logger
-        self.class.logger
-      end
-
       def method_missing(mtd, *args, &block)
-        logger.debug "Sending to native #{mtd}"
+        teLogger.debug "Sending to native #{mtd}"
         @nativeKeypair.send(mtd, *args, &block)
       end
 
       def respond_to_missing?(mtd, incPriv = false)
-        logger.debug "Respond to missing #{mtd}"
+        teLogger.debug "Respond to missing #{mtd}"
         @nativeKeypair.respond_to?(mtd)
       end
 
@@ -129,21 +122,14 @@ module Ccrypto
       include TR::CondUtils
       include DataConversion
 
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :j_rsa
+
       def initialize(*args, &block)
         @config = args.first
         raise KeypairEngineException, "1st parameter must be a #{Ccrypto::KeypairConfig.class} object" if not @config.is_a?(Ccrypto::KeypairConfig)
 
-      end
-
-      def self.logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :rsa_engine
-        end
-        @logger
-      end
-      def logger
-        self.class.logger
       end
 
       def generate_keypair(&block)
@@ -208,7 +194,7 @@ module Ccrypto
 
         case padding
         when :pkcs1
-          logger.owarn "RSA with PKCS1Padding mode is vulnerable. :oeap mode recommended"
+          teLogger.owarn "RSA with PKCS1Padding mode is vulnerable. :oeap mode recommended"
           transform = "RSA/#{mode.to_s.upcase}/PKCS1Padding"
 
         when :oaep
@@ -232,7 +218,7 @@ module Ccrypto
           end
 
         when :no_padding
-          logger.owarn "RSA with NoPadding mode is vulnerable. :oeap mode recommended"
+          teLogger.owarn "RSA with NoPadding mode is vulnerable. :oeap mode recommended"
           transform = "RSA/#{mode.to_s.upcase}/NoPadding"
 
         else
@@ -242,19 +228,19 @@ module Ccrypto
         begin
 
           if prov.nil?
-            logger.debug "Encrypt transformation #{transform} with nil provider"
+            teLogger.debug "Encrypt transformation #{transform} with nil provider"
             cipher = javax.crypto.Cipher.getInstance(transform)
           else
-            logger.debug "Encrypt transformation #{transform} with provider #{prov.is_a?(String) ? prov : prov.name}"
+            teLogger.debug "Encrypt transformation #{transform} with provider #{prov.is_a?(String) ? prov : prov.name}"
             cipher = javax.crypto.Cipher.getInstance(transform, prov)
           end
 
 
           if oaepSpec.nil?
-            logger.debug "Init cipher with default parameter spec"
+            teLogger.debug "Init cipher with default parameter spec"
             cipher.init(javax.crypto.Cipher::ENCRYPT_MODE, pubKey.native_pubKey)
           else
-            logger.debug "Init cipher with parameter spec #{oaepSpec}"
+            teLogger.debug "Init cipher with parameter spec #{oaepSpec}"
             cipher.init(javax.crypto.Cipher::ENCRYPT_MODE, pubKey.native_pubKey, oaepSpec)
           end
 
@@ -272,7 +258,7 @@ module Ccrypto
             end
           else
             inDat = to_java_bytes(val)
-            logger.debug "Encrypting #{inDat.length} bytes"
+            teLogger.debug "Encrypting #{inDat.length} bytes"
             ed = cipher.update(inDat)
             out.write(ed) if not_empty?(ed)
           end
@@ -335,7 +321,7 @@ module Ccrypto
             end
           else
             inDat = to_java_bytes(enc)
-            logger.debug "Decrypting #{inDat.length} bytes"
+            teLogger.debug "Decrypting #{inDat.length} bytes"
             pd = cipher.update(inDat)
             out.write(pd) if not_empty?(pd)
           end
@@ -368,21 +354,21 @@ module Ccrypto
         begin
 
           if is_empty?(prov)
-            logger.debug "Provider is nil"
+            teLogger.debug "Provider is nil"
             sign = java.security.Signature.getInstance(signAlgo) 
           else
-            logger.debug "Provider is '#{prov.name}'"
+            teLogger.debug "Provider is '#{prov.name}'"
             sign = java.security.Signature.getInstance(signAlgo, prov) 
           end 
 
-          logger.debug "Private key is #{@config.private_key.native_privKey}"
+          teLogger.debug "Private key is #{@config.private_key.native_privKey}"
           sign.initSign(@config.private_key.native_privKey)
 
           algoSpec = block.call(:signAlgoSpec) if block
 
           if not_empty?(algoSpec) and algoSpec.is_a?(java.security.spec.AlgorithmParameterSpec)
             sign.setParameter(algoSpec)
-            logger.debug "Sign Algo Parameter : '#{algoSpec}'"
+            teLogger.debug "Sign Algo Parameter : '#{algoSpec}'"
           end
 
           case val
@@ -405,10 +391,8 @@ module Ccrypto
 
       def sign_pss(val, &block)
         
-        #raise KeypairEngineException, "Keypair is required" if @config.keypair.nil?
-        #raise KeypairEngineException, "RSA keypair is required" if not @config.keypair.is_a?(RSAKeyBundle)
         raise KeypairEngineException, "Private key is required" if not @config.has_private_key?
-        raise KeypairEngineException, "RSA private key is required" if not @config.private_key.is_a?(RSAPrivateKey)
+        raise KeypairEngineException, "RSA private key is required." if not @config.private_key.is_a?(RSAPrivateKey)
 
         privKey = @config.private_key
 
@@ -458,7 +442,6 @@ module Ccrypto
 
         sign.setParameter(java.security.spec.PSSParameterSpec.new(signHash.to_s.strip.upcase,"MGF1", mgf1Spec, saltLen, trailer))
 
-        logger.debug "Private key is #{privKey.class}"
         sign.initSign(privKey.native_privKey)
 
         case val
@@ -488,10 +471,10 @@ module Ccrypto
         when java.security.cert.Certificate, java.security.PublicKey
           
           if is_empty?(prov)
-            logger.debug "Provider is nil"
+            teLogger.debug "Provider is nil"
             sign = java.security.Signature.getInstance(signAlgo)
           else
-            logger.debug "Provider is '#{prov.name}'"
+            teLogger.debug "Provider is '#{prov.name}'"
             sign = java.security.Signature.getInstance(signAlgo, prov)
           end 
 

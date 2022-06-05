@@ -5,6 +5,10 @@ module Ccrypto
     class X509Engine
       include TR::CondUtils
 
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :j_x509
+
       def initialize(certProf)
         @certProfile = certProf
       end
@@ -110,7 +114,7 @@ module Ccrypto
               signAlgo = "#{signHash.to_s.upcase}WithRSA"
               break
             when Ccrypto::PrivateKey
-              logger.debug "Found Ccrypto::Private key #{gKey}."
+              teLogger.debug "Found Ccrypto::Private key #{gKey}."
               gKey = gKey.native_privKey
             else
               raise X509EngineException, "Unsupported issuer key type '#{gKey}'"
@@ -202,14 +206,6 @@ module Ccrypto
         end
 
         kur
-      end
-
-      def logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :x509_engine
-        end
-        @logger
       end
 
     end

@@ -10,6 +10,9 @@ module Ccrypto
       include TR::CondUtils
       include DataConversion
 
+      include TeLogger::TeLogHelper
+      teLogger_tag :j_p7
+
       def initialize(config)
         raise PKCS7EngineException, "Ccrypto::PKCS7Config is expected. Given #{config}" if not config.is_a?(Ccrypto::PKCS7Config)
         @config = config
@@ -91,16 +94,16 @@ module Ccrypto
         begin
 
           if attached
-            logger.debug "Initiated attached sign"
+            teLogger.debug "Initiated attached sign"
           else
-            logger.debug "Initiated detached sign"
+            teLogger.debug "Initiated detached sign"
           end
 
           sos = gen.open(os, attached)
 
           case val
           when java.io.InputStream
-            logger.debug "InputStream data-to-be-signed detected"
+            teLogger.debug "InputStream data-to-be-signed detected"
             buf = ::Java::Byte[readBufSize].new
             read = 0
             processed = 0
@@ -110,7 +113,7 @@ module Ccrypto
               block.call(:processed, processed) if block
             end
           else
-            logger.debug "Byte array data-to-be-signed detected"
+            teLogger.debug "Byte array data-to-be-signed detected"
             ba = to_java_bytes(val)
             if ba.is_a?(::Java::byte[])
               sos.write(ba)
@@ -152,28 +155,28 @@ module Ccrypto
         case srcData
         when java.io.File
           data = org.bouncycastle.cms.CMSProcessableFile.new(val)
-          logger.debug "Given original data is a java.io.File"
+          teLogger.debug "Given original data is a java.io.File"
         else
           if not_empty?(srcData)
             ba = to_java_bytes(srcData)
             if ba.is_a?(::Java::byte[])
               data = org.bouncycastle.cms.CMSProcessableByteArray.new(ba)
-              logger.debug "Given original data is a byte array"
+              teLogger.debug "Given original data is a byte array"
             else
               raise PKCS7EngineException, "Failed to read original data. Given #{srcData}"
             end
           else
-            logger.debug "Original data for signing is not given."
+            teLogger.debug "Original data for signing is not given."
           end
         end
 
         case val
         when java.io.InputStream
           if data.nil?
-            logger.debug "Attached signature with java.io.InputStream signature detected during verification"
+            teLogger.debug "Attached signature with java.io.InputStream signature detected during verification"
             signed = org.bouncycastle.cms.CMSSignedData.new(val)
           else
-            logger.debug "Detached signature with java.io.InputStream signature detected during verification"
+            teLogger.debug "Detached signature with java.io.InputStream signature detected during verification"
             signed = org.bouncycastle.cms.CMSSignedData.new(data, val)
           end
         else
@@ -181,10 +184,10 @@ module Ccrypto
             ba = to_java_bytes(val)
             if ba.is_a?(::Java::byte[])
               if data.nil?
-                logger.debug "Attached signature with byte array signature detected during verification"
+                teLogger.debug "Attached signature with byte array signature detected during verification"
                 signed = org.bouncycastle.cms.CMSSignedData.new(ba)
               else
-                logger.debug "Detached signature with byte array signature detected during verification"
+                teLogger.debug "Detached signature with byte array signature detected during verification"
                 signed = org.bouncycastle.cms.CMSSignedData.new(data, ba)
               end
             else
@@ -208,27 +211,27 @@ module Ccrypto
               if block
                 certVerified = block.call(:verify_certificate, c)
                 if certVerified.nil?
-                  logger.debug "Certificate with subject #{c.subject} / Issuer : #{c.issuer} / SN : #{c.serial_number.to_s(16)} passed through (no checking by application)"
+                  teLogger.debug "Certificate with subject #{c.subject} / Issuer : #{c.issuer} / SN : #{c.serial_number.to_s(16)} passed through (no checking by application)"
                   certVerified = true
                 elsif is_bool?(certVerified)
                   if certVerified
-                    logger.debug "Certificate with subject #{c.subject} / Issuer : #{c.issuer} / SN : #{c.serial_number.to_s(16)} accepted by application"
+                    teLogger.debug "Certificate with subject #{c.subject} / Issuer : #{c.issuer} / SN : #{c.serial_number.to_s(16)} accepted by application"
                   else
-                    logger.debug "Certificate with subject #{c.subject} / Issuer : #{c.issuer} / SN : #{c.serial_number.to_s(16)} rejected by application"
+                    teLogger.debug "Certificate with subject #{c.subject} / Issuer : #{c.issuer} / SN : #{c.serial_number.to_s(16)} rejected by application"
                   end
                 else
-                  logger.debug "Certificate with subject #{c.subject} / Issuer : #{c.issuer} / SN : #{c.serial_number.to_s(16)} passed through (no checking by application. Given #{certVerified})"
+                  teLogger.debug "Certificate with subject #{c.subject} / Issuer : #{c.issuer} / SN : #{c.serial_number.to_s(16)} passed through (no checking by application. Given #{certVerified})"
                 end
               else
-                logger.debug "Certificate with subject #{c.subject} / Issuer : #{c.issuer} / SN : #{c.serial_number.to_s(16)} passed through (no checking by application)"
+                teLogger.debug "Certificate with subject #{c.subject} / Issuer : #{c.issuer} / SN : #{c.serial_number.to_s(16)} passed through (no checking by application)"
               end
 
               if certVerified
 
-                logger.debug "Verifing signature against certificate '#{c.subject}'"
+                teLogger.debug "Verifing signature against certificate '#{c.subject}'"
                 verifier = org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder.new.setProvider(prov).build(c)
                 if signer.verify(verifier)
-                  logger.debug "Signer with #{c.subject} verified!"
+                  teLogger.debug "Signer with #{c.subject} verified!"
                   if block
                     block.call(:verification_result, true)
                     if data.nil?
@@ -239,19 +242,19 @@ module Ccrypto
                   signatureVerified = true
 
                 else
-                  logger.debug "Signer with #{c.subject} failed. Retry with subsequent certificate"
+                  teLogger.debug "Signer with #{c.subject} failed. Retry with subsequent certificate"
                   signatureVerified = false
                 end
 
               end
             rescue ::Java::OrgBouncycastleCms::CMSSignerDigestMismatchException => ex
-              logger.error "Signer digest mismatch exception : #{ex.message}" 
+              teLogger.error "Signer digest mismatch exception : #{ex.message}" 
               signatureVerified = false
               break
             rescue Exception => ex
-              logger.error ex
-              logger.error ex.message
-              logger.error ex.backtrace.join("\n")
+              teLogger.error ex
+              teLogger.error ex.message
+              teLogger.error ex.backtrace.join("\n")
             end
           end
           # end certs.getMatches
@@ -275,7 +278,7 @@ module Ccrypto
         intBufSize = 1024000
         if block
           cipher = block.call(:cipher)
-          logger.debug "Application given cipher #{cipher}"
+          teLogger.debug "Application given cipher #{cipher}"
 
           prov = block.call(:jce_provider)
           intBufSize = block.call(:int_buffer_size)
@@ -378,7 +381,7 @@ module Ccrypto
             encIs = r.getContentStream(kt).getContentStream
           rescue Exception => ex
             lastEx = ex
-            logger.debug "Got exception : #{ex.message}. Retry with another envelope"
+            teLogger.debug "Got exception : #{ex.message}. Retry with another envelope"
             next
           end
 
@@ -425,22 +428,14 @@ module Ccrypto
       end
 
       private
-      def logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :pkcs7_engine
-        end
-        @logger
-      end
-
       def to_cms_recipint_info(obj, prov = Ccrypto::Java::JCEProvider::DEFProv)
 
         case obj
         when java.security.Certificate
-          logger.debug "Given recipient info is java.security.Certificate"
+          teLogger.debug "Given recipient info is java.security.Certificate"
           org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator.new(obj).setProvider(prov)
         when Ccrypto::X509Cert
-          logger.debug "Given recipient info is Ccrypto::X509Cert"
+          teLogger.debug "Given recipient info is Ccrypto::X509Cert"
           org.bouncycastle.cms.jcajce.JceKeyTransRecipientInfoGenerator.new(obj.nativeX509).setProvider(prov)
         else
           raise PKCS7EngineException, "Unknown object to conver to CMS recipient info. Given #{obj}"

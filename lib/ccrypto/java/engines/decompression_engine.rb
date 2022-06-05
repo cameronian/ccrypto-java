@@ -7,6 +7,9 @@ module Ccrypto
       include DataConversion
       include TR::CondUtils
 
+      include TeLogger::TeLogHelper
+      teLogger_tag :j_decompression
+
       def initialize(*args,&block)
        
         @eng = java.util.zip.Inflater.new
@@ -16,7 +19,7 @@ module Ccrypto
       end
 
       def update(val)
-        logger.debug "Given #{val.length} bytes for decompression"
+        teLogger.debug "Given #{val.length} bytes for decompression"
         if val.length > 0
 
           @eng.setInput(to_java_bytes(val))
@@ -25,7 +28,7 @@ module Ccrypto
           buf = ::Java::byte[102400].new
           while not @eng.finished
             done = @eng.inflate(buf)
-            logger.debug "Done #{done} bytes"
+            teLogger.debug "Done #{done} bytes"
             @os.write(buf,0,done)
           end
 
@@ -38,15 +41,6 @@ module Ccrypto
       end
 
       def final
-      end
-
-      private
-      def logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :decomp
-        end
-        @logger
       end
 
     end

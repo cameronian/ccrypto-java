@@ -7,6 +7,10 @@ module Ccrypto
       include TR::CondUtils
       include DataConversion
 
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :j_digest
+
       Potential = [
 
         Ccrypto::SHA1.provider_info("SHA-1"),
@@ -157,7 +161,7 @@ module Ccrypto
       end
 
       def initialize(algo, prov = nil, &block)
-        logger.debug "Algo : #{algo}"
+        teLogger.debug "Algo : #{algo}"
         @algo =  algo #algo.to_s.gsub("_","-")
         begin
           if not_empty?(prov)
@@ -197,14 +201,6 @@ module Ccrypto
 
       def reset
         @inst.reset
-      end
-
-      def logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :digest_eng
-        end
-        @logger
       end
 
     end

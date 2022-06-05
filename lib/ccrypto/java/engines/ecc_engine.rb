@@ -29,6 +29,10 @@ module Ccrypto
 
       include PKCS12
 
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :j_ecc_keybundle
+
       def initialize(kp)
         @keypair = kp
       end
@@ -58,7 +62,7 @@ module Ccrypto
           keyType = "AES"
         end
         keyType = "AES" if is_empty?(keyType)
-        logger.debug "Generate secret key type #{keyType}"
+        teLogger.debug "Generate secret key type #{keyType}"
         ka.generateSecret(keyType).encoded
       end
 
@@ -135,24 +139,13 @@ module Ccrypto
         end
       end
 
-      def self.logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :ecckeybundle
-        end
-        @logger
-      end
-      def logger
-        self.class.logger
-      end
-
       def method_missing(mtd, *args, &block)
-        logger.debug "Sending to native #{mtd}"
+        teLogger.debug "Sending to native #{mtd}"
         @keypair.send(mtd, *args, &block)
       end
 
       def respond_to_missing?(mtd, incPriv = false)
-        logger.debug "Respond to missing #{mtd}"
+        teLogger.debug "Respond to missing #{mtd}"
         @keypair.respond_to?(mtd)
       end
 
@@ -161,20 +154,15 @@ module Ccrypto
     class ECCEngine
       include TR::CondUtils
       include DataConversion
+      
+      include TeLogger::TeLogHelper
+      teLogger_tag :j_ecc
 
       def self.supported_curves
         if @curves.nil?
           @curves = org.bouncycastle.asn1.x9.ECNamedCurveTable.getNames.sort.to_a.map { |c| Ccrypto::ECCConfig.new(c) }
         end
         @curves
-      end
-
-      def self.logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :ecc_eng
-        end
-        @logger
       end
 
       def initialize(*args,&block)
@@ -218,7 +206,7 @@ module Ccrypto
 
         sign = java.security.Signature.getInstance("SHA256WithECDSA")
         sign.initSign(kp.private_key)
-        logger.debug "Signing data : #{val}" 
+        teLogger.debug "Signing data : #{val}" 
         case val
         when java.io.InputStream
           buf = Java::byte[102400].new
@@ -235,7 +223,7 @@ module Ccrypto
       def self.verify(pubKey, val, sign)
         ver = java.security.Signature.getInstance("SHA256WithECDSA")
         ver.initVerify(pubKey)
-        logger.debug "Verifing data : #{val}"
+        teLogger.debug "Verifing data : #{val}"
         case val
         when java.io.InputStream
           buf = Java::byte[102400].new
@@ -247,10 +235,6 @@ module Ccrypto
         end
 
         ver.verify(to_java_bytes(sign))
-      end
-
-      def logger
-        self.class.logger
       end
 
     end

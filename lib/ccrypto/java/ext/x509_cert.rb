@@ -31,7 +31,6 @@ module Ccrypto
     def self.to_java_cert(cert)
       raise X509CertException, "Given certificate to convert to Java certificate object is empty" if is_empty?(cert) 
 
-      #logger.debug "Given cert #{cert}"
       case cert
       when java.security.cert.Certificate
         cert
@@ -43,17 +42,6 @@ module Ccrypto
         raise X509CertException, "Unknown certificate type #{cert} for conversion"
       end
 
-    end
-
-    def self.logger
-      if @logger.nil?
-        @logger = Tlogger.new
-        @logger.tag = :x509Cert
-      end
-      @logger
-    end
-    def logger
-      self.class.logger
     end
 
   end

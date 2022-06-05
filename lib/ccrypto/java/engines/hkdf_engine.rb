@@ -8,7 +8,9 @@ module Ccrypto
       include TR::CondUtils
 
       def initialize(*args, &block)
-        raise KDFEngineException, "KDF config is expected" if not @config.is_a?(Ccrypto::KDFConfig)
+        @config = args.first
+
+        raise KDFEngineException, "KDF config is expected. Given #{@config}" if not @config.is_a?(Ccrypto::KDFConfig)
         raise KDFEngineException, "Output bit length (outBitLength) value is not given or not a positive value (#{@config.outBitLength})" if is_empty?(@config.outBitLength) or @config.outBitLength <= 0
 
 
@@ -17,12 +19,50 @@ module Ccrypto
 
       def derive(input, output = :binary)
         begin
-          macAlgo = to_jce_spec(@config)
-          logger.debug "Mac algo : #{macAlgo}"
-          @hmac = javax.crypto.Mac.getInstance(to_jce_spec(@config))
-          @hmac.init(@config.key.to_jce_secret_key)
+
+          case @config.digest
+          when :sha1
+            dig = org.bouncycastle.crypto.digests.SHA1Digest.new
+          when :sha224
+            dig = org.bouncycastle.crypto.digests.SHA224Digest.new
+          when :sha256
+            dig = org.bouncycastle.crypto.digests.SHA256Digest.new
+          when :sha384
+            dig = org.bouncycastle.crypto.digests.SHA384Digest.new
+          when :sha512
+            dig = org.bouncycastle.crypto.digests.SHA512Digest.new
+          when :sha3_224
+            dig = org.bouncycastle.crypto.digests.SHA3Digest.new(224)
+          when :sha3_256
+            dig = org.bouncycastle.crypto.digests.SHA3Digest.new(256)
+          when :sha3_384
+            dig = org.bouncycastle.crypto.digests.SHA3Digest.new(384)
+          when :sha3_512
+            dig = org.bouncycastle.crypto.digests.SHA3Digest.new(512)
+          else
+            raise KDFEngineException, "Digest #{@config.digest} not supported"
+          end
+
+          @config.info = "" if @config.info.nil?
+
+          hkdf = org.bouncycastle.crypto.generators.HKDFBytesGenerator.new(dig)
+          hkdfParam = org.bouncycastle.crypto.params.HKDFParameters.new(to_java_bytes(input), to_java_bytes(@config.salt) ,to_java_bytes(@config.info))
+          hkdf.init(hkdfParam)
+
+          out = ::Java::byte[@config.outBitLength/8].new
+          hkdf.generateBytes(out, 0, out.length)
+
+          case output
+          when :b64
+            to_b64(out)
+          when :hex
+            to_hex(out)
+          else
+            out
+          end
+
         rescue Exception => ex
-          raise HMACEngineException, ex
+          raise KDFEngineException, ex
         end
         
       end

@@ -72,15 +72,6 @@ module Ccrypto
         end
       end
 
-      private
-      def logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :membuf
-        end
-        @logger
-      end
-
     end
   end
 end

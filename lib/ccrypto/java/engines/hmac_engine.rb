@@ -7,6 +7,9 @@ module Ccrypto
       include TR::CondUtils
       include DataConversion
 
+      include TeLogger::TeLogHelper
+      teLogger_tag :j_hmac
+
       def initialize(*args, &block)
         @config = args.first
 
@@ -15,10 +18,10 @@ module Ccrypto
         raise HMACEngineException, "Signing key is required" if is_empty?(@config.key)
         raise HMACEngineException, "Secret key as signing key is required. Given #{@config.key.class}" if not @config.key.is_a?(Ccrypto::SecretKey)
 
-        logger.debug "Config : #{@config.inspect}"
+        teLogger.debug "Config : #{@config.inspect}"
         begin
           macAlgo = to_jce_spec(@config)
-          logger.debug "Mac algo : #{macAlgo}"
+          teLogger.debug "Mac algo : #{macAlgo}"
           @hmac = javax.crypto.Mac.getInstance(to_jce_spec(@config))
           @hmac.init(@config.key.to_jce_secret_key)
         rescue Exception => ex
@@ -66,13 +69,6 @@ module Ccrypto
 
       end
 
-      def logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :mac
-        end
-        @logger
-      end
 
     end
   end

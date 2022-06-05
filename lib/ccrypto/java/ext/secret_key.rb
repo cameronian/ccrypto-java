@@ -3,6 +3,9 @@
 module Ccrypto
   class SecretKey
 
+    include TeLogger::TeLogHelper
+    teLogger_tag :j_secretkey_ext
+
     def to_jce_secret_key
       case @key
       when javax.crypto.spec.SecretKeySpec
@@ -32,7 +35,6 @@ module Ccrypto
     end
 
     def length
-      p @key 
       case @key
       when javax.crypto.spec.SecretKeySpec
         @key.encoded.length
@@ -46,17 +48,15 @@ module Ccrypto
     def equals?(key)
       case key
       when Ccrypto::SecretKey
-        logger.debug "Given key is Ccrypto::SecretKey"
+        teLogger.debug "Given key is Ccrypto::SecretKey"
         to_jce_secret_key.encoded == key.to_jce_secret_key.encoded
       when javax.crypto.spec.SecretKeySpec
-        logger.debug "Given key is java SecretKeySpec"
-        p to_jce_secret_key.encoded
-        p key.encoded
+        teLogger.debug "Given key is java SecretKeySpec"
         to_jce_secret_key.encoded == key.encoded
       when ::Java::byte[]
         to_jce_secret_key.encoded == key
       else
-        logger.debug "Not sure how to compare : #{self} / #{key}"
+        teLogger.debug "Not sure how to compare : #{self} / #{key}"
         to_jce_secret_key == key
       end
     end
@@ -66,14 +66,6 @@ module Ccrypto
     #    block.call(b)
     #  end
     #end
-
-    def logger
-      if @logger.nil?
-        @logger = Tlogger.new
-        @logger.tag = :seckey
-      end
-      @logger
-    end
 
   end
 end

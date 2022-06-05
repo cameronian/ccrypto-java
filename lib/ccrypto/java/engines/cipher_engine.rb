@@ -7,6 +7,10 @@ module Ccrypto
       include TR::CondUtils
       include DataConversion
 
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :j_cipher
+
       def self.supported_ciphers
         res = java.security.Security.getAlgorithms("Cipher").to_a.delete_if { |e| e.include?(".") }.sort
       end
@@ -47,8 +51,6 @@ module Ccrypto
           raise Ccrypto::CipherEngineException, "Unsupported config type #{@spec.class}"
         end
 
-        @logger = Tlogger.new
-        @logger.tag = :cipher_eng
 
         if block
           @cipherJceProvider = block.call(:cipher_jceProvider)
@@ -58,24 +60,24 @@ module Ccrypto
         cSpec = to_cipher_spec(@spec)
         if @cipherJceProvider.nil?
           begin
-            @logger.debug "Cipher instance #{cSpec} with null provider"
+            teLogger.debug "Cipher instance #{cSpec} with null provider"
             @cipher = javax.crypto.Cipher.getInstance(cSpec)
           rescue Exception => ex
-            @logger.debug "Error #{ex.message} for spec '#{cSpec}' using null provider. Retest with BC provider"
+            teLogger.debug "Error #{ex.message} for spec '#{cSpec}' using null provider. Retest with BC provider"
             @cipher = javax.crypto.Cipher.getInstance(cSpec, Ccrypto::Java::JCEProvider::BCProv.name)
           end
         else
-          @logger.debug "Cipher instance #{cSpec} with provider '#{@cipherJceProvider.is_a?(String) ? @cipherJceProvider : @cipherJceProvider.name}'"
+          teLogger.debug "Cipher instance #{cSpec} with provider '#{@cipherJceProvider.is_a?(String) ? @cipherJceProvider : @cipherJceProvider.name}'"
           @cipher = javax.crypto.Cipher.getInstance(cSpec, @cipherJceProvider)
         end
 
 
         if @spec.has_key?
-          @logger.debug "Using given cipher key"
+          teLogger.debug "Using given cipher key"
 
         else
           
-          @logger.debug "Generating cipher key"
+          teLogger.debug "Generating cipher key"
           if @keygenJceProvider.nil?
             kg = javax.crypto.KeyGenerator.getInstance(to_algo(@spec.algo))
           else
@@ -90,10 +92,10 @@ module Ccrypto
 
         if @spec.is_mode?(:gcm) or @spec.is_algo?(:chacha20)
           if is_empty?(@spec.iv)
-            @logger.debug "Generating 12 bytes of IV"
+            teLogger.debug "Generating 12 bytes of IV"
             @spec.iv = Ccrypto::Java::SecureRandomEngine.random_bytes(12)
           else
-            @logger.debug "Using given IV"
+            teLogger.debug "Using given IV"
           end
 
           if @spec.is_mode?(:gcm)
@@ -104,25 +106,25 @@ module Ccrypto
 
         elsif @spec.is_algo?(:blowfish)
           if is_empty?(@spec.iv)
-            @logger.debug "Generating 8 bytes of IV"
+            teLogger.debug "Generating 8 bytes of IV"
             @spec.iv = Ccrypto::Java::SecureRandomEngine.random_bytes(8)
           else
-            @logger.debug "Using given IV"
+            teLogger.debug "Using given IV"
           end
           ivParam = javax.crypto.spec.IvParameterSpec.new(@spec.iv)
 
         elsif @spec.is_mode?(:cbc) or @spec.is_mode?(:ctr) or @spec.is_mode?(:cfb) or @spec.is_mode?(:ofb)
           if is_empty?(@spec.iv)
-            @logger.debug "Generating 16 bytes of IV" 
+            teLogger.debug "Generating 16 bytes of IV" 
             @spec.iv = Ccrypto::Java::SecureRandomEngine.random_bytes(16)
           else
-            @logger.debug "Using given IV"
+            teLogger.debug "Using given IV"
           end
           ivParam = javax.crypto.spec.IvParameterSpec.new(@spec.iv)
 
         end
 
-        #@logger.debug "IV : #{@spec.iv}"
+        #teLogger.debug "IV : #{@spec.iv}"
 
         case @spec.key
         when Ccrypto::SecretKey
@@ -137,24 +139,24 @@ module Ccrypto
           raise CipherEngineException, "Unknown key type '#{@spec.key}'"
         end
 
-        #@logger.debug "SKey : #{skey.encoded}"
+        #teLogger.debug "SKey : #{skey.encoded}"
 
         case @spec.cipherOps
         when :encrypt, :enc
           if ivParam.nil?
-            @logger.debug "Encryption mode"
+            teLogger.debug "Encryption mode"
             @cipher.init(javax.crypto.Cipher::ENCRYPT_MODE, skey)
           else
-            @logger.debug "Encryption mode with IV"
+            teLogger.debug "Encryption mode with IV"
             @cipher.init(javax.crypto.Cipher::ENCRYPT_MODE, skey, ivParam)
           end
 
         when :decrypt, :dec
           if ivParam.nil?
-            @logger.debug "Decryption mode"
+            teLogger.debug "Decryption mode"
             @cipher.init(javax.crypto.Cipher::DECRYPT_MODE, skey)
           else
-            @logger.debug "Decryption mode with IV"
+            teLogger.debug "Decryption mode with IV"
             @cipher.init(javax.crypto.Cipher::DECRYPT_MODE, skey, ivParam)
           end
 
@@ -163,19 +165,19 @@ module Ccrypto
         end
 
         if @spec.is_mode?(:gcm) and not_empty?(@spec.auth_data)
-          @logger.debug "Adding additional authenticated data for GCM mode"
+          teLogger.debug "Adding additional authenticated data for GCM mode"
           @cipher.updateAAD(to_java_bytes(@spec.auth_data))
         end
 
       end
 
       def update(val)
-        @logger.debug "Passing #{val.length} bytes to cipher"
+        teLogger.debug "Passing #{val.length} bytes to cipher"
         res = @cipher.update(to_java_bytes(val))  
         if res.nil?
-          @logger.debug "Cipher update returns nothing"
+          teLogger.debug "Cipher update returns nothing"
         else
-          @logger.debug "Cipher update output length #{res.length}"
+          teLogger.debug "Cipher update output length #{res.length}"
         end
         res
       end
@@ -190,7 +192,7 @@ module Ccrypto
         begin
           res = @cipher.doFinal
 
-          @logger.debug "Final output length : #{res.length}"
+          teLogger.debug "Final output length : #{res.length}"
 
           if @spec.is_mode?(:gcm) and @spec.is_encrypt_cipher_mode?
             # extract auth_tag
