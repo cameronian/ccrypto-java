@@ -22,8 +22,21 @@ module Ccrypto
         
         begin
 
+          case input
+          when String
+            if input.ascii_only?
+              pass = input.to_java.toCharArray
+            else
+              pass = to_hex(to_java_bytes(input)).to_java.toCharArray
+            end
+          when ::Java::byte[]
+            pass = to_hex(to_java_bytes(input)).to_java.toCharArray
+          else
+            raise KDFEngineException, "Input type '#{input.class}' cannot convert to char array"
+          end
+
           skf = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHMAC#{@config.digest.upcase}",JCEProvider::DEFProv)
-          keySpec = javax.crypto.spec.PBEKeySpec.new(input.to_java.toCharArray,@config.salt, @config.iter, @config.outBitLength)
+          keySpec = javax.crypto.spec.PBEKeySpec.new(pass.to_java, to_java_bytes(@config.salt), @config.iter, @config.outBitLength)
 
           sk = skf.generateSecret(keySpec)
           out = sk.encoded
@@ -41,6 +54,15 @@ module Ccrypto
           raise KDFEngineException, ex
         end
         
+      end
+
+      private
+      def logger
+        if @logger.nil?
+          @logger = TeLogger::Tlogger.new
+          @logger.tag = :j_pbkdf2
+        end
+        @logger
       end
 
       
