@@ -7,6 +7,8 @@ module Ccrypto
   module Java
 
     class ECCPublicKey < Ccrypto::ECCPublicKey
+      include DataConversion
+
       def to_bin
         @native_pubKey.encoded
       end
@@ -16,6 +18,7 @@ module Ccrypto
       end
 
       def self.to_key(bin)
+        bin = to_java_bytes(bin) if not bin.is_a?(::Java::byte[])
         pubKey = java.security.KeyFactory.getInstance("ECDSA", "BC").generatePublic(java.security.spec.X509EncodedKeySpec.new(bin))
         ECCPublicKey.new(pubKey)
       end

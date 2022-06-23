@@ -26,7 +26,11 @@ module Ccrypto
         when :seq
           v = org.bouncycastle.asn1.ASN1EncodableVector.new
           val.each do |vv|
-            v.add(vv)
+            if vv.is_a?(::Java::byte[])
+              v.add(org.bouncycastle.asn1.DERBitString.new(vv))
+            else
+              v.add(vv)
+            end
           end
           ASN1Object.new(type,org.bouncycastle.asn1.DERSequence.new(v))
 

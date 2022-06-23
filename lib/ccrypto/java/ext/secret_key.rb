@@ -1,7 +1,9 @@
 
+require_relative '../data_conversion'
 
 module Ccrypto
   class SecretKey
+    include Java::DataConversion
 
     include TeLogger::TeLogHelper
     teLogger_tag :j_secretkey_ext
@@ -55,6 +57,8 @@ module Ccrypto
         to_jce_secret_key.encoded == key.encoded
       when ::Java::byte[]
         to_jce_secret_key.encoded == key
+      when String
+        to_jce_secret_key.encoded == to_java_bytes(key)
       else
         teLogger.debug "Not sure how to compare : #{self} / #{key}"
         to_jce_secret_key == key

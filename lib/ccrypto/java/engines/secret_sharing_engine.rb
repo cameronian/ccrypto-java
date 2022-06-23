@@ -37,7 +37,13 @@ module Ccrypto
           # java.lang.Long instead of java.lang.Integer
           # Using Map with parameterize auto conversion will failed inside the Java
           parts.each do |k,v|
-            jhash.put(java.lang.Integer.new(k),v)
+            if not v.is_a?(::Java::byte[])
+              vv = to_java_bytes(v)
+            else
+              vv = v
+            end
+
+            jhash.put(java.lang.Integer.new(k),vv)
           end
         when java.util.Map
           jhash = parts

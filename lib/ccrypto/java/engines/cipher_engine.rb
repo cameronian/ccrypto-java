@@ -89,6 +89,9 @@ module Ccrypto
 
         end
 
+        if @spec.iv.is_a?(String)
+          @spec.iv = to_java_bytes(@spec.iv)
+        end
 
         if @spec.is_mode?(:gcm) or @spec.is_algo?(:chacha20)
           if is_empty?(@spec.iv)
