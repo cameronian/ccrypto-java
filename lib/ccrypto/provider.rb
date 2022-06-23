@@ -10,6 +10,8 @@ require_relative 'java/engines/cipher_engine'
 require_relative 'java/engines/secret_key_engine'
 require_relative 'java/engines/hmac_engine'
 require_relative 'java/engines/hkdf_engine'
+require_relative 'java/engines/pbkdf2_engine'
+
 
 require_relative 'java/utils/comparator'
 require_relative 'java/utils/memory_buffer'
@@ -77,6 +79,8 @@ module  Ccrypto
             ScryptEngine.new(*args,&block)
           when Ccrypto::HKDFConfig
             HKDFEngine.new(*args,&block)
+          when Ccrypto::PBKDF2Config
+            PBKDF2Engine.new(*args,&block)
           when Ccrypto::CipherConfig
             CipherEngine.new(*args, &block)
           when Ccrypto::HMACConfig
@@ -91,28 +95,6 @@ module  Ccrypto
         end
 
 
-        #case algo
-        #when :ecc
-        #  ECCEngine
-        #when :x509
-        #  if args.length > 1
-        #    X509Engine.new(*args[1..-1])
-        #  else
-        #    X509Engine
-        #  end
-        #else
-        #  if DigestEngine.is_supported?(algo, &block)
-        #    DigestEngine.instance(algo, &block)
-        #  elsif CipherEngine.is_supported_cipher?(algo)
-        #    if not_empty?(args)
-        #      CipherEngine.instance(*args)
-        #    else
-        #      CipherEngine
-        #    end
-        #  else
-        #    raise CcryptoProviderException, "Algo '#{algo}' is not supported for provider '#{self.provider_name}'"
-        #  end
-        #end
       end
 
       def self.asn1_engine(*args, &block)
