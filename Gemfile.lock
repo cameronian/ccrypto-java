@@ -1,6 +1,6 @@
 GIT
   remote: ccrypto
-  revision: e1fbd3dfa68e652d96b184f055cd18f5530dbd7d
+  revision: 00f0b61a565e75d297c42dc20e01aac167df2a1a
   branch: main
   specs:
     ccrypto (0.1.0)
@@ -33,7 +33,7 @@ GEM
     rspec-support (3.11.0)
     teLogger (0.1.0)
     tlogger (0.26.3)
-    toolrack (0.18.5)
+    toolrack (0.18.6)
       base58
       tlogger
 

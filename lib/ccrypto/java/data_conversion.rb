@@ -5,7 +5,7 @@ module Ccrypto
     module DataConversion
       
       def to_hex(bin)
-        String.from_java_bytes(org.bouncycastle.util.encoders.Hex.encode(bin))
+        String.from_java_bytes(org.bouncycastle.util.encoders.Hex.encode(to_java_bytes(bin)))
       end
       # end to_hex
 
@@ -58,7 +58,11 @@ module Ccrypto
         when Ccrypto::Java::ManagedMemoryBuffer
           val.bytes
         else
-          val
+          if val.respond_to?(:encoded)
+            val.encoded
+          else
+            val
+          end
         end
       end
 

@@ -16,6 +16,8 @@ require_relative 'java/engines/pbkdf2_engine'
 require_relative 'java/utils/comparator'
 require_relative 'java/utils/memory_buffer'
 
+require_relative 'java/utils/native_helper'
+
 require_relative 'java/engines/asn1_engine'
 require_relative 'java/engines/compression_engine'
 require_relative 'java/engines/decompression_engine'
@@ -116,6 +118,9 @@ module  Ccrypto
 
         when :decompression
           Decompression.new(*(args[1..-1]), &block)
+
+        when :native_helper
+          NativeHelper
 
         else
           raise CcryptoProviderException, "Util #{algo} is not supported for provider #{self.provider_name}"
