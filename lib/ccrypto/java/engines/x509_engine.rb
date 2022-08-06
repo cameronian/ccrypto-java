@@ -58,10 +58,97 @@ module Ccrypto
 
         certGen.addExtension(org.bouncycastle.asn1.x509.Extension::basicConstraints, true, org.bouncycastle.asn1.x509.BasicConstraints.new(true)) if cp.gen_issuer_cert?
 
-        certGen.addExtension(org.bouncycastle.asn1.x509.Extension::keyUsage, false, org.bouncycastle.asn1.x509.KeyUsage.new(to_keyusage))
+        #certGen.addExtension(org.bouncycastle.asn1.x509.Extension::keyUsage, false, org.bouncycastle.asn1.x509.KeyUsage.new(to_keyusage))
+        #criticalKu = 0
+        #nonCriticalKu = 0
+        kuv = 0
+        criticalKu = false
+        cp.key_usage.selected.each do |ku, critical|
+          case ku
+          when :digitalSignature
+            kur = org.bouncycastle.asn1.x509::KeyUsage::digitalSignature
+          when :nonRepudiation
+            kur = org.bouncycastle.asn1.x509::KeyUsage::nonRepudiation
+          when :keyEncipherment
+            kur = org.bouncycastle.asn1.x509::KeyUsage::keyEncipherment
+          when :dataEncipherment
+            kur = org.bouncycastle.asn1.x509::KeyUsage::dataEncipherment
+          when :keyAgreement
+            kur = org.bouncycastle.asn1.x509::KeyUsage::keyAgreement
+          when :keyCertSign
+            kur = org.bouncycastle.asn1.x509::KeyUsage::keyCertSign
+          when :crlSign
+            kur = org.bouncycastle.asn1.x509::KeyUsage::cRLSign
+          when :encipherOnly
+            kur = org.bouncycastle.asn1.x509::KeyUsage::encipherOnly
+          when :decipherOnly
+            kur = org.bouncycastle.asn1.x509::KeyUsage::decipherOnly
+          end
 
-        extKeyUsage = to_extkeyusage
-        certGen.addExtension(org.bouncycastle.asn1.x509.Extension::extendedKeyUsage, false, org.bouncycastle.asn1.x509.ExtendedKeyUsage.new(extKeyUsage)) if not extKeyUsage.is_empty?
+          criticalKu = critical if critical
+
+          kuv |= kur
+
+          #if critical
+          #  criticalKu |= kur
+          #else
+          #  nonCriticalKu |= kur
+          #end
+
+        end
+
+        certGen.addExtension(org.bouncycastle.asn1.x509.Extension::keyUsage, criticalKu, org.bouncycastle.asn1.x509.KeyUsage.new(kuv)) 
+        #certGen.addExtension(org.bouncycastle.asn1.x509.Extension::keyUsage, true, org.bouncycastle.asn1.x509.KeyUsage.new(criticalKu)) if criticalKu != 0
+        #certGen.addExtension(org.bouncycastle.asn1.x509.Extension::keyUsage, false, org.bouncycastle.asn1.x509.KeyUsage.new(nonCriticalKu)) if nonCriticalKu != 0
+
+        ekuCritical = false
+        eku = java.util.Vector.new
+        #ekuCritical = java.util.Vector.new
+        #ekuNonCritical = java.util.Vector.new
+        cp.ext_key_usage.selected.each do |ku,critical|
+          case ku
+          when :allPurpose
+            kur = org.bouncycastle.asn1.x509.KeyPurposeId::anyExtendedKeyUsage
+          when :serverAuth
+            kur = org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_serverAuth
+          when :clientAuth
+            kur = org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_clientAuth
+          when :codeSigning
+            kur =  org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_codeSigning
+          when :emailProtection
+            kur = org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_emailProtection
+          when :timestamping
+            kur = org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_timeStamping
+          when :ocspSigning
+            kur = org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_OCSPSigning
+          end
+
+          ekuCritical = critical if critical
+          eku.add_element(kur)
+          #if critical
+          #  ekuCritical.add_element(kur)
+          #else
+          #  ekuNonCritical.add_element(kur)
+          #end
+        end
+
+        #extKeyUsage = java.util.Vector.new
+        cp.domain_key_usage.each do |dku, critical|
+          kur = org.bouncycastle.asn1.DERObjectIdentifier.new(dku)
+
+          ekuCritical = critical if critical
+          eku.add_element(kur)
+          #if critical
+          #  ekuCritical.add_element(kur)
+          #else
+          #  ekuNonCritical.add_element(kur)
+          #end
+        end
+
+        certGen.addExtension(org.bouncycastle.asn1.x509.Extension::extendedKeyUsage, ekuCritical, org.bouncycastle.asn1.x509.ExtendedKeyUsage.new(eku)) if not_empty?(eku)
+        #certGen.addExtension(org.bouncycastle.asn1.x509.Extension::extendedKeyUsage, true, org.bouncycastle.asn1.x509.ExtendedKeyUsage.new(ekuCritical)) if not_empty?(ekuCritical)
+        #certGen.addExtension(org.bouncycastle.asn1.x509.Extension::extendedKeyUsage, false, org.bouncycastle.asn1.x509.ExtendedKeyUsage.new(ekuNonCritical)) if not_empty?(ekuNonCritical)
+        #certGen.addExtension(org.bouncycastle.asn1.x509.Extension::extendedKeyUsage, false, org.bouncycastle.asn1.x509.ExtendedKeyUsage.new(extKeyUsage)) if not extKeyUsage.is_empty?
 
         altName = []
         cp.email.each do |e|
@@ -83,22 +170,32 @@ module Ccrypto
         certGen.addExtension(org.bouncycastle.asn1.x509.Extension::subjectAlternativeName, false, org.bouncycastle.asn1.x509.GeneralNames.new(altName.to_java(org.bouncycastle.asn1.x509.GeneralName)) )
 
         if not_empty?(cp.crl_dist_point)
-          crl = []
+          crls = []
           cp.crl_dist_point.each do |c|
-            crls << org.bouncycastle.asn1.x509.GeneralName.new(org.bouncycastle.asn1.x509.GeneralName::uniformResourceIdentifier, org.bouncycastle.asn1.DERIA5String.new(c));
+            crls << org.bouncycastle.asn1.x509.GeneralName.new(org.bouncycastle.asn1.x509.GeneralName::uniformResourceIdentifier, org.bouncycastle.asn1.DERIA5String.new(c))
           end
-          gns = org.bouncycastle.asn1.x509.GeneralNames.new(crls.to_java(org.bouncycastle.asn1.x509.GeneralName));
-          dpn = org.bouncycastle.asn1.x509.DistributionPointName.new(gns);
-          dp =  org.bouncycastle.asn1.x509.DistributionPoint.new(dpn,nil,nil);
-          certGen.addExtension(org.bouncycastle.asn1.x509.X509Extensions::CRLDistributionPoints,false,org.bouncycastle.asn1.DERSequence.new(dp));      
+          gns = org.bouncycastle.asn1.x509.GeneralNames.new(crls.to_java(org.bouncycastle.asn1.x509.GeneralName))
+          dpn = org.bouncycastle.asn1.x509.DistributionPointName.new(gns)
+          dp =  org.bouncycastle.asn1.x509.DistributionPoint.new(dpn,nil,nil)
+          certGen.addExtension(org.bouncycastle.asn1.x509.X509Extensions::CRLDistributionPoints,false,org.bouncycastle.asn1.DERSequence.new(dp))      
         end
 
-        if not_empty?(cp.ocsp_url)
-          # todo multiple ocsp
-          ocspName = org.bouncycastle.asn1.x509.GeneralName.new(org.bouncycastle.asn1.x509.GeneralName.uniformResourceIdentifier, cp.ocsp_url.first);
-          authorityInformationAccess = org.bouncycastle.asn1.x509.AuthorityInformationAccess.new(org.bouncycastle.asn1.x509.X509ObjectIdentifiers.ocspAccessMethod, ocspName);
-          certGen.addExtension(org.bouncycastle.asn1.x509.X509Extensions::AuthorityInfoAccess, false, authorityInformationAccess);			  
+        aia = []
+        cp.ocsp_url.each do |o|
+          ov = org.bouncycastle.asn1.x509.GeneralName.new(org.bouncycastle.asn1.x509.GeneralName::uniformResourceIdentifier, org.bouncycastle.asn1.DERIA5String.new(o))
+          aia << org.bouncycastle.asn1.x509.AccessDescription.new(org.bouncycastle.asn1.x509.AccessDescription.id_ad_ocsp, ov)
         end
+
+        cp.issuer_url.each do |i|
+          iv = org.bouncycastle.asn1.x509.GeneralName.new(org.bouncycastle.asn1.x509.GeneralName::uniformResourceIdentifier, org.bouncycastle.asn1.DERIA5String.new(i))
+          aia << org.bouncycastle.asn1.x509.AccessDescription.new(org.bouncycastle.asn1.x509.AccessDescription.id_ad_caIssuers, iv)
+        end
+
+        if not_empty?(aia)
+          authorityInformationAccess = org.bouncycastle.asn1.x509.AuthorityInformationAccess.new(aia.to_java(org.bouncycastle.asn1.x509.AccessDescription))
+          certGen.addExtension(org.bouncycastle.asn1.x509.X509Extensions::AuthorityInfoAccess, false, authorityInformationAccess)			  
+        end
+
 
         certGen.addExtension(org.bouncycastle.asn1.x509.Extension::subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(org.bouncycastle.asn1.x509.SubjectPublicKeyInfo.getInstance(cp.public_key.to_bin)))
 
@@ -156,33 +253,33 @@ module Ccrypto
 
       end
 
-      def to_keyusage
-        kur = 0
-        @certProfile.key_usage.selected.each do |ku|
-          case ku
-          when :digitalSignature
-            kur |= org.bouncycastle.asn1.x509::KeyUsage::digitalSignature
-          when :nonRepudiation
-            kur |= org.bouncycastle.asn1.x509::KeyUsage::nonRepudiation
-          when :keyEncipherment
-            kur |= org.bouncycastle.asn1.x509::KeyUsage::keyEncipherment
-          when :dataEncipherment
-            kur |= org.bouncycastle.asn1.x509::KeyUsage::dataEncipherment
-          when :keyAgreement
-            kur |= org.bouncycastle.asn1.x509::KeyUsage::keyAgreement
-          when :keyCertSign
-            kur |= org.bouncycastle.asn1.x509::KeyUsage::keyCertSign
-          when :crlSign
-            kur |= org.bouncycastle.asn1.x509::KeyUsage::cRLSign
-          when :encipherOnly
-            kur |= org.bouncycastle.asn1.x509::KeyUsage::encipherOnly
-          when :decipherOnly
-            kur |= org.bouncycastle.asn1.x509::KeyUsage::decipherOnly
-          end
-        end
+      #def to_keyusage
+      #  kur = 0
+      #  @certProfile.key_usage.selected.each do |ku|
+      #    case ku
+      #    when :digitalSignature
+      #      kur |= org.bouncycastle.asn1.x509::KeyUsage::digitalSignature
+      #    when :nonRepudiation
+      #      kur |= org.bouncycastle.asn1.x509::KeyUsage::nonRepudiation
+      #    when :keyEncipherment
+      #      kur |= org.bouncycastle.asn1.x509::KeyUsage::keyEncipherment
+      #    when :dataEncipherment
+      #      kur |= org.bouncycastle.asn1.x509::KeyUsage::dataEncipherment
+      #    when :keyAgreement
+      #      kur |= org.bouncycastle.asn1.x509::KeyUsage::keyAgreement
+      #    when :keyCertSign
+      #      kur |= org.bouncycastle.asn1.x509::KeyUsage::keyCertSign
+      #    when :crlSign
+      #      kur |= org.bouncycastle.asn1.x509::KeyUsage::cRLSign
+      #    when :encipherOnly
+      #      kur |= org.bouncycastle.asn1.x509::KeyUsage::encipherOnly
+      #    when :decipherOnly
+      #      kur |= org.bouncycastle.asn1.x509::KeyUsage::decipherOnly
+      #    end
+      #  end
 
-        kur
-      end
+      #  kur
+      #end
 
       def to_extkeyusage
         kur = java.util.Vector.new
