@@ -1,9 +1,10 @@
 GIT
   remote: ccrypto
-  revision: 00f0b61a565e75d297c42dc20e01aac167df2a1a
+  revision: d5378f533cbeff32a8e58c8b15167382c506f490
   branch: main
   specs:
     ccrypto (0.1.0)
+      activesupport
       teLogger
       toolrack
 
@@ -11,12 +12,24 @@ PATH
   remote: .
   specs:
     ccrypto-java (0.1.0)
+      teLogger
+      toolrack
 
 GEM
   remote: https://rubygems.org/
   specs:
+    activesupport (6.1.6)
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      i18n (>= 1.6, < 2)
+      minitest (>= 5.1)
+      tzinfo (~> 2.0)
+      zeitwerk (~> 2.3)
     base58 (0.2.3)
+    concurrent-ruby (1.1.10)
     diff-lcs (1.5.0)
+    i18n (1.10.0)
+      concurrent-ruby (~> 1.0)
+    minitest (5.16.2)
     rake (13.0.6)
     rspec (3.11.0)
       rspec-core (~> 3.11.0)
@@ -36,6 +49,9 @@ GEM
     toolrack (0.18.6)
       base58
       tlogger
+    tzinfo (2.0.4)
+      concurrent-ruby (~> 1.0)
+    zeitwerk (2.6.0)
 
 PLATFORMS
   universal-java-1.8
