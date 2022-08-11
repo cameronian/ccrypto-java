@@ -53,7 +53,8 @@ RSpec.describe "X509 engine spec for Java" do
     prof.dns_name = "https://asdf.com"
     prof.email = "jamma@saa.com"
 
-    prof.key_usage.enable_digitalSignature(true).enable_nonRepudiation
+    #prof.key_usage.enable_digitalSignature(true).enable_nonRepudiation
+    prof.key_usage.enable_digitalSignature(true).enable_keyEncipherment
 
     prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
 

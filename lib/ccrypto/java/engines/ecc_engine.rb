@@ -56,9 +56,22 @@ module Ccrypto
       end
 
       def derive_dh_shared_secret(pubKey, &block)
-        ka = javax.crypto.KeyAgreement.getInstance("ECDH") 
+
+        JCEProvider.instance.add_bc_provider
+
+        ka = javax.crypto.KeyAgreement.getInstance("ECDH", JCEProvider::DEFProv) 
         ka.init(@keypair.private)
-        ka.doPhase(pubKey.native_pubKey, true)
+
+        case pubKey
+        when ECCPublicKey
+          pub = pubKey.native_pubKey
+        when java.security.PublicKey
+          pub = pubKey
+        else
+          raise KeypairEngineException, "Unsupported public key type #{pubKey.class}"
+        end
+        ka.doPhase(pub, true)
+        #ka.doPhase(pubKey.native_pubKey, true)
         if block
           keyType = block.call(:keytype)
         else
@@ -200,6 +213,11 @@ module Ccrypto
         kb = ECCKeyBundle.new(kp)
         kb
 
+      end
+
+      def regenerate_keypair(pubKey, privKey, &block)
+        kp = java.security.KeyPair.new(pubKey, privKey) 
+        ECCKeyBundle.new(kp)
       end
 
       def sign(val, &block)

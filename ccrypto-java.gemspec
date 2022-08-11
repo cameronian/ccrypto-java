@@ -5,12 +5,12 @@ require_relative "lib/ccrypto/java/version"
 Gem::Specification.new do |spec|
   spec.name          = "ccrypto-java"
   spec.version       = Ccrypto::Java::VERSION
-  spec.authors       = ["Chris"]
-  spec.email         = ["chrisliaw@antrapol.com"]
+  spec.authors       = ["Ian"]
+  spec.email         = ["cameronian0@protonmail.com"]
 
-  spec.summary       = ""
-  spec.description   = ""
-  spec.homepage      = ""
+  spec.summary       = "Cryptographic API for Java runtime based on Bouncycastle library. Provider for Ccrypto library"
+  spec.description   = "Refers to Ccrypto library for more info"
+  spec.homepage      = "https://github.com/cameronian/ccrypto-java"
   spec.required_ruby_version = ">= 2.4.0"
 
   #spec.metadata["allowed_push_host"] = "TODO: Set to your gem server 'https://example.com'"
@@ -32,6 +32,9 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'teLogger'
   spec.add_dependency "toolrack"
+
+  spec.add_dependency 'ccrypto'
+  spec.add_development_dependency 'devops_assist'
 
   # Uncomment to register a new dependency of your gem
   # spec.add_dependency "example-gem", "~> 1.0"

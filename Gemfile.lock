@@ -1,17 +1,8 @@
-GIT
-  remote: ccrypto
-  revision: d5378f533cbeff32a8e58c8b15167382c506f490
-  branch: main
-  specs:
-    ccrypto (0.1.0)
-      activesupport
-      teLogger
-      toolrack
-
 PATH
   remote: .
   specs:
     ccrypto-java (0.1.0)
+      ccrypto
       teLogger
       toolrack
 
@@ -25,11 +16,35 @@ GEM
       tzinfo (~> 2.0)
       zeitwerk (~> 2.3)
     base58 (0.2.3)
+    ccrypto (0.1.0)
+      activesupport
+      teLogger
+      toolrack
     concurrent-ruby (1.1.10)
+    devops_assist (0.2.0)
+      git_cli
+      git_cli_prompt
+      gvcs
+      teLogger
+      toolrack
+      tty-prompt
     diff-lcs (1.5.0)
+    git_cli (0.9.0)
+      gvcs
+      ptools (~> 1.4.0)
+      tlogger
+      toolrack
+    git_cli_prompt (0.2.2)
+      tlogger
+      toolrack
+      tty-prompt
+    gvcs (0.1.0)
     i18n (1.10.0)
       concurrent-ruby (~> 1.0)
     minitest (5.16.2)
+    pastel (0.8.0)
+      tty-color (~> 0.5)
+    ptools (1.4.2)
     rake (13.0.6)
     rspec (3.11.0)
       rspec-core (~> 3.11.0)
@@ -49,8 +64,19 @@ GEM
     toolrack (0.18.6)
       base58
       tlogger
+    tty-color (0.6.0)
+    tty-cursor (0.7.1)
+    tty-prompt (0.23.1)
+      pastel (~> 0.8)
+      tty-reader (~> 0.8)
+    tty-reader (0.9.0)
+      tty-cursor (~> 0.7)
+      tty-screen (~> 0.8)
+      wisper (~> 2.0)
+    tty-screen (0.8.1)
     tzinfo (2.0.4)
       concurrent-ruby (~> 1.0)
+    wisper (2.0.1)
     zeitwerk (2.6.0)
 
 PLATFORMS
@@ -59,8 +85,8 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  ccrypto!
   ccrypto-java!
+  devops_assist
   rake (~> 13.0)
   rspec (~> 3.0)
 
