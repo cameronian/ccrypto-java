@@ -53,6 +53,7 @@ module Ccrypto
 
       def private_key
         ECCPrivateKey.new(@keypair.private)
+        #ECCPrivateKey.new(@keypair)
       end
 
       def derive_dh_shared_secret(pubKey, &block)
@@ -118,7 +119,7 @@ module Ccrypto
 
           out = StringIO.new
           out.write header
-          out.write to_b64_mime(@keypair.private.encoded)
+          out.write to_b64_mime(private_key.encoded)
           out.write footer
 
           out.string
@@ -149,7 +150,7 @@ module Ccrypto
       def equal?(kp)
         case kp
         when Ccrypto::ECCKeyBundle
-          @keypair.encoded == kp.private.encoded
+          private_key.encoded == kp.private_key.encoded
         else
           false
         end

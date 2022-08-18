@@ -2,6 +2,7 @@
 require_relative 'java/engines/ecc_engine'
 require_relative 'java/engines/digest_engine'
 require_relative 'java/engines/x509_engine'
+require_relative 'java/engines/x509_csr_engine'
 
 require_relative 'java/engines/scrypt_engine'
 require_relative 'java/engines/secure_random_engine'
@@ -77,6 +78,8 @@ module  Ccrypto
             DigestEngine.instance(*args, &block)
           when Ccrypto::X509::CertProfile
             X509Engine.new(*args,&block)
+          when Ccrypto::X509::CSRProfile
+            X509CSREngine.new(*args,&block)
           when Ccrypto::ScryptConfig
             ScryptEngine.new(*args,&block)
           when Ccrypto::HKDFConfig

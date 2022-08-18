@@ -12,6 +12,8 @@ module Ccrypto
 
       module ClassMethods
         include DataConversion
+        include TeLogger::TeLogHelper
+        teLogger_tag :j_p12
 
         def from_pkcs12(bin, &block)
 
@@ -20,41 +22,58 @@ module Ccrypto
           storeType = block.call(:store_type)
           storeType = "PKCS12" if is_empty?(storeType)
 
+          case storeType
+          when :p12, :pkcs12
+            storeType = "PKCS12"
+          else
+            storeType = "PKCS12"
+          end
+
           prof = block.call(:jce_provider)
+          prof = JCEProvider::DEFProv if prof.nil?
+
           if not_empty?(prof)
+            teLogger.debug "Keystore type '#{storeType}' with provider #{prof}"
             ks = java.security.KeyStore.getInstance(storeType, prof)
           else
+            teLogger.debug "Keystore type '#{storeType}' with nil provider"
             ks = java.security.KeyStore.getInstance(storeType)
           end
 
-          pass = block.call(:p12_pass) || block.call(:jks_pass)
-          name = block.call(:p12_name) || block.call(:jks_name)
+          pass = block.call(:store_pass)
+          name = block.call(:key_name)
 
-          #case bin
-          #when String
-          #  bbin = bin.to_java_bytes
-          #when ::Java::byte[]
-          #  bbin = bin
-          #else
-          #  raise KeypairEngineException, "Java byte array is expected. Given #{bin.class}"
-          #end
+          inForm = block.call(:in_format)
+          case inForm
+          when :b64
+            inp = from_b64(bin)
+          when :hex
+            inp = from_hex(bin)
+          else
+            inp = bin
+          end
 
-          bbin = to_java_bytes(bin)
+          bbin = to_java_bytes(inp)
 
           ks.load(java.io.ByteArrayInputStream.new(bbin),pass.to_java.toCharArray)
+
+
+          teLogger.debug "Aliases : #{ks.aliases.to_a.join(", ")}"
+          teLogger.debug "Given key name : #{name}"
 
           name = ks.aliases.to_a.first if is_empty?(name)
 
           userCert = Ccrypto::X509Cert.new(ks.getCertificate(name))
           chain = ks.get_certificate_chain(name).collect { |c| Ccrypto::X509Cert.new(c) }
-          chain = chain.delete_if { |c| c.equal?(userCert) }
+          #chain = chain.delete_if { |c| c.equal?(userCert) }
 
           key = ks.getKey(name, pass.to_java.toCharArray)
+          kp = java.security.KeyPair.new(userCert.getPublicKey, key)
           case key
           when java.security.interfaces.ECPrivateKey
-            [Ccrypto::Java::ECCKeyBundle.new(key), userCert, chain]
+            [Ccrypto::Java::ECCKeyBundle.new(kp), userCert, chain]
           when java.security.interfaces.RSAPrivateKey
-            [Ccrypto::Java::RSAKeyBundle.new(key), userCert, chain]
+            [Ccrypto::Java::RSAKeyBundle.new(kp), userCert, chain]
           else
             raise PKCS12StorageException, "Unknown key type #{key}"
           end
@@ -85,17 +104,17 @@ module Ccrypto
         gcert = block.call(:cert)
         raise KeypairEngineException, "PKCS12 requires the X.509 certificate" if is_empty?(gcert)
 
-        ca = block.call(:certchain) || [cert]
-        ca = [cert] if is_empty?(ca)
+        ca = block.call(:certchain) || [gcert]
+        ca = [gcert] if ca.nil?
         ca = ca.unshift(gcert) if not ca.first.equal?(gcert)
         ca = ca.collect { |c|
           Ccrypto::X509Cert.to_java_cert(c) 
         }
 
-        pass = block.call(:p12_pass) || block.call(:jks_pass)
+        pass = block.call(:store_pass)
         raise KeypairEngineException, "Password is required" if is_empty?(pass)
 
-        name = block.call(:p12_name) || block.call(:jks_name)
+        name = block.call(:key_name)
         name = "Ccrypto P12" if is_empty?(name)
 
         keypair = block.call(:keypair)

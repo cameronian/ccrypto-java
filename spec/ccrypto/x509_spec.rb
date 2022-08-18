@@ -109,6 +109,8 @@ RSpec.describe "X509 engine spec for Java" do
 
     prof.add_domain_key_usage("1.2.11.22.33")
 
+    prof.add_custom_extension("1.2.12.44.11.88","Private use only")
+
     fact = Ccrypto::AlgoFactory.engine(prof)
     expect(fact).not_to be nil
 
@@ -197,9 +199,9 @@ RSpec.describe "X509 engine spec for Java" do
           rootCert
         when :certchain
           [rootCert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test Root CA"
         end
       end
@@ -247,9 +249,9 @@ RSpec.describe "X509 engine spec for Java" do
           subCACert
         when :certchain
           [rootCert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test Sub CA"
         end
       end
@@ -297,9 +299,9 @@ RSpec.describe "X509 engine spec for Java" do
         when :certchain
           # for Java, sequence of certs is important
           [subCACert, rootCert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test Operational CA"
         end
       end
@@ -348,9 +350,9 @@ RSpec.describe "X509 engine spec for Java" do
         when :certchain
           # start from the leaf until to root
           [leafCACert, subCACert, rootCert] 
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test End User Certificate"
         end
       end
@@ -367,8 +369,10 @@ RSpec.describe "X509 engine spec for Java" do
 
     rkp,rcert,rchain = kpfc.from_storage(File.read("enduser.p12")) do |key|
       case key
-      when :p12_pass
+      when :store_pass
         "password"
+      when :key_name
+        "Test End User Certificate"
       end
     end
     expect(rkp != nil).to be true
@@ -376,7 +380,7 @@ RSpec.describe "X509 engine spec for Java" do
     expect(rcert.equal?(userCert)).to be true
 
     rchain.each do |cc|
-      expect((cc.equal?(rootCert) or cc.equal?(subCACert) or cc.equal?(leafCACert) )).to be true
+      expect((cc.equal?(rootCert) or cc.equal?(subCACert) or cc.equal?(leafCACert)  or cc.equal?(userCert) )).to be true
     end
 
 
@@ -388,9 +392,9 @@ RSpec.describe "X509 engine spec for Java" do
         when :certchain
           # start from the leaf until to root
           [leafCACert, subCACert, rootCert] 
-        when :jks_pass
+        when :store_pass
           "password"
-        when :jks_name
+        when :key_name
           "Test End User Certificate"
         end
       end
@@ -405,8 +409,10 @@ RSpec.describe "X509 engine spec for Java" do
 
     rrkp,rrcert,rrchain = kpfc.from_storage(File.read("enduser.jks")) do |key|
       case key
-      when :jks_pass
+      when :store_pass
         "password"
+      when :key_name
+        "Test End User Certificate"
       end
     end
     expect(rrkp != nil).to be true
@@ -414,7 +420,7 @@ RSpec.describe "X509 engine spec for Java" do
     expect(rrcert.equal?(userCert)).to be true
 
     rrchain.each do |cc|
-      expect((cc.equal?(rootCert) or cc.equal?(subCACert) or cc.equal?(leafCACert) )).to be true
+      expect((cc.equal?(rootCert) or cc.equal?(subCACert) or cc.equal?(leafCACert)  or cc.equal?(userCert) )).to be true
     end
 
   end
@@ -460,9 +466,9 @@ RSpec.describe "X509 engine spec for Java" do
           rootCert
         when :certchain
           [rootCert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test Root CA RSA"
         end
       end
@@ -510,9 +516,9 @@ RSpec.describe "X509 engine spec for Java" do
           subCACert
         when :certchain
           [rootCert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test Sub CA RSA"
         end
       end
@@ -560,9 +566,9 @@ RSpec.describe "X509 engine spec for Java" do
         when :certchain
           # for Java, sequence of certs is important
           [subCACert, rootCert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test Operational CA RSA"
         end
       end
@@ -611,9 +617,9 @@ RSpec.describe "X509 engine spec for Java" do
         when :certchain
           # start from the leaf until to root
           [leafCACert, subCACert, rootCert] 
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test End User RSA Certificate"
         end
       end
@@ -630,7 +636,7 @@ RSpec.describe "X509 engine spec for Java" do
 
     rkp,rcert,rchain = kpfc.from_storage(File.read("enduser-rsa.p12")) do |key|
       case key
-      when :p12_pass
+      when :store_pass
         "password"
       end
     end
@@ -639,7 +645,7 @@ RSpec.describe "X509 engine spec for Java" do
     expect(rcert.equal?(userCert)).to be true
 
     rchain.each do |cc|
-      expect((cc.equal?(rootCert) or cc.equal?(subCACert) or cc.equal?(leafCACert) )).to be true
+      expect((cc.equal?(rootCert) or cc.equal?(subCACert) or cc.equal?(leafCACert)  or cc.equal?(userCert) )).to be true
     end
 
 
@@ -651,9 +657,9 @@ RSpec.describe "X509 engine spec for Java" do
         when :certchain
           # start from the leaf until to root
           [leafCACert, subCACert, rootCert] 
-        when :jks_pass
+        when :store_pass
           "password"
-        when :jks_name
+        when :key_name
           "Test End User Certificate RSA"
         end
       end
@@ -668,8 +674,10 @@ RSpec.describe "X509 engine spec for Java" do
 
     rrkp,rrcert,rrchain = kpfc.from_storage(File.read("enduser-rsa.jks")) do |key|
       case key
-      when :jks_pass
+      when :store_pass
         "password"
+      when :key_name
+        "Test End User Certificate RSA"
       end
     end
     expect(rrkp != nil).to be true
@@ -677,7 +685,7 @@ RSpec.describe "X509 engine spec for Java" do
     expect(rrcert.equal?(userCert)).to be true
 
     rrchain.each do |cc|
-      expect((cc.equal?(rootCert) or cc.equal?(subCACert) or cc.equal?(leafCACert) )).to be true
+      expect((cc.equal?(rootCert) or cc.equal?(subCACert) or cc.equal?(leafCACert) or cc.equal?(userCert) )).to be true
     end
 
 

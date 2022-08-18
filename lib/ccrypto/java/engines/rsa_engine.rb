@@ -100,7 +100,7 @@ module Ccrypto
       def equal?(kp)
         case kp
         when Ccrypto::RSAKeyBundle
-          @nativeKeypair.encoded == kp.private.encoded
+          private_key.encoded == kp.private_key.encoded
         else
           false
         end
