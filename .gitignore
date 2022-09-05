@@ -10,7 +10,9 @@
 # rspec failure tracking
 .rspec_status
 
+*.csr
 *.crt
 *.cer
 *.p12
 *.jks
+*.log

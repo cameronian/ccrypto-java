@@ -12,7 +12,10 @@ require_relative 'java/engines/secret_key_engine'
 require_relative 'java/engines/hmac_engine'
 require_relative 'java/engines/hkdf_engine'
 require_relative 'java/engines/pbkdf2_engine'
+require_relative 'java/engines/argon2_engine'
 
+require_relative 'java/engines/ed25519_engine'
+require_relative 'java/engines/x25519_engine'
 
 require_relative 'java/utils/comparator'
 require_relative 'java/utils/memory_buffer'
@@ -65,6 +68,8 @@ module  Ccrypto
             SecretKeyEngine
           elsif config == SecretSharingConfig
             SecretSharingEngine
+          elsif config == ED25519Config
+            ED25519Engine
           else
             raise CcryptoProviderException, "Config class '#{config}' is not supported for provider '#{self.provider_name}'"
           end
@@ -90,10 +95,16 @@ module  Ccrypto
             CipherEngine.new(*args, &block)
           when Ccrypto::HMACConfig
             HMACEngine.new(*args, &block)
+          when Ccrypto::Argon2Config
+            Argon2Engine.new(*args, &block)
           when Ccrypto::SecretSharingConfig
             SecretSharingEngine.new(*args,&block)
           when Ccrypto::PKCS7Config
             PKCS7Engine.new(*args, &block)
+          when Ccrypto::ED25519Config
+            ED25519Engine.new(*args, &block)
+          when Ccrypto::X25519Config
+            X25519Engine.new(*args, &block)
           else
             raise CcryptoProviderException, "Config instance '#{config}' is not supported for provider '#{self.provider_name}'"
           end

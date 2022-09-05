@@ -1,6 +1,6 @@
 GIT
   remote: ccrypto
-  revision: 0d1c446d77fb781857f5ac087de9326bc3dafca9
+  revision: 4be7c95e0c20fa7a811a1e5445e7f3421baf7bce
   branch: main
   specs:
     ccrypto (0.1.0)
