@@ -21,18 +21,18 @@ module Ccrypto
         begin
 
           case @config.digest
-          when :sha1
-            dig = org.bouncycastle.crypto.digests.SHA1Digest.new
-          when :sha224
-            dig = org.bouncycastle.crypto.digests.SHA224Digest.new
+          #when :sha1
+          #  dig = org.bouncycastle.crypto.digests.SHA1Digest.new
+          #when :sha224
+          #  dig = org.bouncycastle.crypto.digests.SHA224Digest.new
           when :sha256
             dig = org.bouncycastle.crypto.digests.SHA256Digest.new
           when :sha384
             dig = org.bouncycastle.crypto.digests.SHA384Digest.new
           when :sha512
             dig = org.bouncycastle.crypto.digests.SHA512Digest.new
-          when :sha3_224
-            dig = org.bouncycastle.crypto.digests.SHA3Digest.new(224)
+          #when :sha3_224
+          #  dig = org.bouncycastle.crypto.digests.SHA3Digest.new(224)
           when :sha3_256
             dig = org.bouncycastle.crypto.digests.SHA3Digest.new(256)
           when :sha3_384
@@ -43,6 +43,9 @@ module Ccrypto
             raise KDFEngineException, "Digest #{@config.digest} not supported"
           end
 
+          # https://soatok.blog/2021/11/17/understanding-hkdf/
+          # info field should be the randomness entrophy compare to salt
+          # HKDf can have fix or null salt but better have additional info for each purposes
           @config.info = "" if @config.info.nil?
 
           hkdf = org.bouncycastle.crypto.generators.HKDFBytesGenerator.new(dig)

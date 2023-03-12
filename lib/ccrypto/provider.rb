@@ -70,6 +70,8 @@ module  Ccrypto
             SecretSharingEngine
           elsif config == ED25519Config
             ED25519Engine
+          elsif config == Ccrypto::X25519KeyBundle
+            X25519KeyBundle
           else
             raise CcryptoProviderException, "Config class '#{config}' is not supported for provider '#{self.provider_name}'"
           end
