@@ -46,38 +46,16 @@ RSpec.describe "Cipher engine spec for Java" do
    
     require 'ccrypto/java'
 
-    testkey = [
-      Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 128, mode: :cbc, padding: :pkcs5 }),
-      Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 256, mode: :gcm, padding: :pkcs5, auth_data: "Header to be used for gcm aad" }),
+    cc = Ccrypto::AlgoFactory.engine(Ccrypto::CipherConfig)
+    cc.supported_ciphers.each do |hc|
      
-      Ccrypto::DirectCipherConfig.new({ algo: :chacha20, keysize: 256, mode: :poly1305 }),
-
-      Ccrypto::DirectCipherConfig.new({ algo: :camellia, keysize: 256, mode: :cbc, padding: :pkcs5 }),
-      Ccrypto::DirectCipherConfig.new({ algo: :camellia, keysize: 256, mode: :ctr, padding: :pkcs5 }),
-
-      Ccrypto::DirectCipherConfig.new({ algo: :aria, keysize: 256, mode: :cbc, padding: :pkcs5 }),
-      Ccrypto::DirectCipherConfig.new({ algo: :aria, keysize: 256, mode: :ctr, padding: :pkcs5 }),
-
-      Ccrypto::DirectCipherConfig.new({ algo: :twofish, keysize: 256, mode: :cbc, padding: :pkcs5 }),
-      Ccrypto::DirectCipherConfig.new({ algo: :twofish, keysize: 256, mode: :ctr, padding: :pkcs5 }),
-
-      Ccrypto::DirectCipherConfig.new({ algo: :seed, keysize: 256, mode: :cbc, padding: :pkcs5 }),
-      Ccrypto::DirectCipherConfig.new({ algo: :seed, keysize: 256, mode: :ctr, padding: :pkcs5 }),
-
-      Ccrypto::DirectCipherConfig.new({ algo: :sm4, keysize: 128, mode: :cbc, padding: :pkcs5 }),
-      Ccrypto::DirectCipherConfig.new({ algo: :sm4, keysize: 128, mode: :ctr, padding: :pkcs5 }),
-
-    ]
-
-    testkey.each do |hc|
-
       spec = hc.clone
       spec.cipherOps = :encrypt
 
       cc = Ccrypto::AlgoFactory.engine(spec)
       expect(cc).not_to be nil
 
-      data = "password"
+      data = SecureRandom.hex(spec.keysize/2)
 
       enc = cc.final(data)
 

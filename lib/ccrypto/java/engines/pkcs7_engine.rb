@@ -288,7 +288,13 @@ module Ccrypto
           end
         end
 
-        cipher = Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 256, mode: :cbc }) if cipher.nil?
+        if cipher.nil?
+          cipher = CipherEngine.get_cipher(:aes, 256, :cbc)
+          cipher = cipher.first if not_empty?(cipher)
+        end
+
+
+        #cipher = Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 256, mode: :cbc }) if cipher.nil?
         prov =  Ccrypto::Java::JCEProvider::DEFProv if is_empty?(prov)
         intBufSize = 1024000 if is_empty?(intBufSize)
 
@@ -483,9 +489,10 @@ module Ccrypto
       end  # to_cms_recipient_info
 
       def cipher_to_bc_cms_algo(cipher)
+        p cipher
         case cipher
         when Ccrypto::CipherConfig
-          case cipher.algo
+          case cipher.algo.downcase.to_sym
           when :seed
             eval("org.bouncycastle.cms.CMSAlgorithm::#{cipher.algo.to_s.upcase}_#{cipher.mode.to_s.upcase}")
           else

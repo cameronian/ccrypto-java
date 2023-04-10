@@ -10,6 +10,7 @@ RSpec.describe "PBKDF2 on Java" do
     conf = Ccrypto::PBKDF2Config.new
     conf.outBitLength = 256
     conf.iter = 288800
+    conf.digest = :sha256
     sc = Ccrypto::AlgoFactory.engine(conf)
     expect(sc).not_to be nil
 

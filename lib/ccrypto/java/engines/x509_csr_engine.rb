@@ -19,6 +19,8 @@ module Ccrypto
         subject = to_cert_subject(cp)
 
         signHash = cp.hashAlgo
+        raise X509CSREngineException, "Certificate hash algorithm '#{signHash}' is not supported" if not DigestEngine.is_digest_supported?(signHash)
+
         provider = block.call(:jce_provider) if block
 
         if provider.nil?
@@ -29,7 +31,7 @@ module Ccrypto
           prov = Ccrypto::Java::JCEProvider.add_provider(provider)
         end
 
-        signHashVal = signHash.provider_config
+        signHashVal = DigestEngine.find_digest_config(signHash).provider_config[:algo_name]
         signHashVal.gsub!("-","")
 
         signAlgo = nil
@@ -83,7 +85,7 @@ module Ccrypto
         cp.custom_extension.each do |k,v|
           val = v[:value]
           val = "" if is_empty?(val)
-          ev = org.bouncycastle.asn1.x509.Extension.new(org.bouncycastle.asn1.DERObjectIdentifier.new(k), v[:critical], org.bouncycastle.asn1.DEROctetString.new(val.to_java.getBytes))
+          ev = org.bouncycastle.asn1.x509.Extension.new(org.bouncycastle.asn1.ASN1ObjectIdentifier.new(k), v[:critical], org.bouncycastle.asn1.DEROctetString.new(val.to_java.getBytes))
           eg.addExtension(ev)
         end
 

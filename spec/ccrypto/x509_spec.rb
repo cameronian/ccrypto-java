@@ -21,7 +21,7 @@ RSpec.describe "X509 engine spec for Java" do
 
     prof.key_usage.enable_digitalSignature.enable_nonRepudiation
 
-    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
     prof.gen_subj_key_id = true
     prof.gen_auth_key_id = true
@@ -56,7 +56,7 @@ RSpec.describe "X509 engine spec for Java" do
     #prof.key_usage.enable_digitalSignature(true).enable_nonRepudiation
     prof.key_usage.enable_digitalSignature(true).enable_keyEncipherment
 
-    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
     prof.gen_subj_key_id = true
     prof.gen_auth_key_id = true
@@ -97,7 +97,7 @@ RSpec.describe "X509 engine spec for Java" do
 
     prof.key_usage.enable_digitalSignature.enable_nonRepudiation
 
-    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
     prof.gen_subj_key_id = true
     prof.gen_auth_key_id = true
@@ -143,7 +143,7 @@ RSpec.describe "X509 engine spec for Java" do
 
     prof.key_usage.enable_digitalSignature.enable_nonRepudiation
 
-    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
     prof.gen_subj_key_id = true
     prof.gen_auth_key_id = true

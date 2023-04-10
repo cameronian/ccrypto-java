@@ -77,7 +77,7 @@ RSpec.describe "X509 CSR engine spec for Javas" do
     certProf.issuer_cert = @rootCert
 
     certProf.key_usage.enable_digitalSignature.enable_nonRepudiation
-    certProf.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+    certProf.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
     certProf.gen_subj_key_id = true
     certProf.gen_auth_key_id = true

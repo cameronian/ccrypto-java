@@ -19,6 +19,7 @@ RSpec.describe "HMAC on Java" do
     conf = Ccrypto::HMACConfig.new
     #conf.key = sk
     conf.key = Ccrypto::SecretKey.new(:aes, DC.from_hex(gkey))
+    conf.digest = :sha256
     sc = Ccrypto::AlgoFactory.engine(conf)
     expect(sc).not_to be nil
 

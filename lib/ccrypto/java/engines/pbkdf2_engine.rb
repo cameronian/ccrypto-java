@@ -14,8 +14,6 @@ module Ccrypto
         raise KDFEngineException, "KDF config is expected. Given #{@config}" if not @config.is_a?(Ccrypto::PBKDF2Config)
         raise KDFEngineException, "Output bit length (outBitLength) value is not given or not a positive value (#{@config.outBitLength})" if is_empty?(@config.outBitLength) or @config.outBitLength <= 0
 
-        raise KDFEngineException, "Digest algo is not supported. Given #{@config.digest}, supported: #{supported_digest.join(", ")}" if not @config.digest.nil? and not is_digest_supported?(@config.digest)
-
         @config.digest = default_digest if is_empty?(@config.digest)
 
         @config.salt = SecureRandom.random_bytes(16) if is_empty?(@config.salt)
@@ -38,7 +36,9 @@ module Ccrypto
             raise KDFEngineException, "Input type '#{input.class}' cannot convert to char array"
           end
 
-          skf = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHMAC#{@config.digest.upcase}",JCEProvider::DEFProv)
+          dig = @config.digest.to_s.gsub("_","-").upcase
+
+          skf = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHMAC#{dig}",JCEProvider::DEFProv)
           keySpec = javax.crypto.spec.PBEKeySpec.new(pass.to_java, to_java_bytes(@config.salt), @config.iter, @config.outBitLength)
 
           sk = skf.generateSecret(keySpec)
@@ -70,14 +70,6 @@ module Ccrypto
           @logger.tag = :j_pbkdf2
         end
         @logger
-      end
-
-      def is_digest_supported?(dig)
-        supported_digest.include?(dig)
-      end
-
-      def supported_digest
-        [:sha1, :sha256, :sha224, :sha384, :sha512]
       end
 
       

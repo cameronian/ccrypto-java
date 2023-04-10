@@ -47,7 +47,8 @@ module Ccrypto
           ASN1Object.new(type, val)
 
         when :int
-          ASN1Object.new(type,org.bouncycastle.asn1.DERInteger.new(val))
+          #ASN1Object.new(type,org.bouncycastle.asn1.DERInteger.new(val))
+          ASN1Object.new(type,org.bouncycastle.asn1.ASN1Integer.new(val))
           #Java::OrgBouncycastleAsn1::DERInteger.new(val)
 
         when :bin

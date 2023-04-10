@@ -18,7 +18,7 @@ RSpec.describe "Test PKCS7" do
 
   #  prof.key_usage.enable_digitalSignature.enable_nonRepudiation
 
-  #  prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+  #  prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
   #  prof.gen_subj_key_id = true
   #  prof.gen_auth_key_id = true
@@ -45,7 +45,7 @@ RSpec.describe "Test PKCS7" do
 
     prof.key_usage.enable_digitalSignature.enable_nonRepudiation
 
-    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
     prof.gen_subj_key_id = true
     prof.gen_auth_key_id = true
@@ -68,7 +68,7 @@ RSpec.describe "Test PKCS7" do
 
     #prof.key_usage.enable_digitalSignature.enable_nonRepudiation
 
-    #prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+    #prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
     #prof.gen_subj_key_id = true
     #prof.gen_auth_key_id = true
@@ -119,7 +119,7 @@ RSpec.describe "Test PKCS7" do
 
     prof.key_usage.enable_digitalSignature.enable_nonRepudiation
 
-    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
     prof.gen_subj_key_id = true
     prof.gen_auth_key_id = true
@@ -214,7 +214,7 @@ RSpec.describe "Test PKCS7" do
 
     prof.key_usage.enable_digitalSignature.enable_nonRepudiation
 
-    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
     prof.gen_subj_key_id = true
     prof.gen_auth_key_id = true
@@ -251,26 +251,36 @@ RSpec.describe "Test PKCS7" do
     ## AES-256-CCM : malloc failure
     ## AES-256-XTS : malloc failure
 
-    cipher = [
-      Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 128, mode: :cbc }),
-      Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 256, mode: :cbc }),
+    #cipher = [
+    #  Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 128, mode: :cbc }),
+    #  Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 256, mode: :cbc }),
 
-      Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 128, mode: :ccm }),
-      Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 256, mode: :ccm }),
-    
-      # error...
-      #Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 256, mode: :ctr }),
-      #Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 256, mode: :cfb }),
-      #Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 256, mode: :cfb }),
+    #  Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 128, mode: :ccm }),
+    #  Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 256, mode: :ccm }),
+    #
+    #  # error...
+    #  #Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 256, mode: :ctr }),
+    #  #Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 256, mode: :cfb }),
+    #  #Ccrypto::DirectCipherConfig.new({ algo: :aes, keysize: 256, mode: :cfb }),
 
-      #Ccrypto::DirectCipherConfig.new({ algo: :chacha20, keysize: 256, mode: :poly1305 }),
+    #  #Ccrypto::DirectCipherConfig.new({ algo: :chacha20, keysize: 256, mode: :poly1305 }),
 
-      Ccrypto::DirectCipherConfig.new({ algo: :camellia, keysize: 256, mode: :cbc, padding: :pkcs5 }),
+    #  Ccrypto::DirectCipherConfig.new({ algo: :camellia, keysize: 256, mode: :cbc, padding: :pkcs5 }),
 
-      Ccrypto::DirectCipherConfig.new({ algo: :seed, keysize: 256, mode: :cbc, padding: :pkcs5 }),
+    #  Ccrypto::DirectCipherConfig.new({ algo: :seed, keysize: 256, mode: :cbc, padding: :pkcs5 }),
+    #]
+
+    ce = Ccrypto::AlgoFactory.engine(Ccrypto::CipherConfig)
+    ciphers = [
+      ce.get_cipher(:aes, 128, :cbc).first,
+      ce.get_cipher(:aes, 256, :cbc).first,
+      ce.get_cipher(:aes, 128, :ccm).first,
+      ce.get_cipher(:aes, 256, :ccm).first,
+      ce.get_cipher(:camellia, 256, :cbc).first,
+      ce.get_cipher(:seed, 128, :cbc).first,
     ]
-
-    cipher.each do |c|
+    ciphers.each do |c|
+      raise "Cipher is NULL!" if c.nil?
 
       enc2 = p7.encrypt(data) do |k|
         case k

@@ -34,13 +34,29 @@ require_relative 'java/engines/pkcs7_engine'
 
 require_relative 'java/engines/rsa_engine'
 
+require 'rbconfig'
+
 module  Ccrypto
   module Java
     class Provider
       include TR::CondUtils
 
       def self.provider_name
-        "java-bc"
+        nm = []
+        nm << "Java-BC : "
+        provider_info.each do |k,v|
+          nm << "#{k.to_s.capitalize} : #{v}"
+        end
+        nm.join("\n")
+      end
+
+      def self.provider_info
+        info = {}
+        info[:ruby_version] = RbConfig::CONFIG["ruby_version"]
+        info[:host] = RbConfig::CONFIG["host"]
+        info[:openssl_version] = OpenSSL::VERSION
+        info[:bouncycastle_info] = JCEProvider::DEFProv.getInfo
+        info
       end
 
       def self.algo_instance(*args, &block)

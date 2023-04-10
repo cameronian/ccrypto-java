@@ -1,9 +1,9 @@
 GIT
   remote: ccrypto
-  revision: cefe58ccb888f3a16e6e217fc02b13568b3cd574
+  revision: 2179a376c0557daf43e308e80a1c0114333dd702
   branch: main
   specs:
-    ccrypto (0.1.0)
+    ccrypto (0.1.4)
       activesupport
       teLogger
       toolrack
@@ -19,58 +19,64 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    activesupport (6.1.6.1)
+    activesupport (7.0.4.3)
       concurrent-ruby (~> 1.0, >= 1.0.2)
       i18n (>= 1.6, < 2)
       minitest (>= 5.1)
       tzinfo (~> 2.0)
-      zeitwerk (~> 2.3)
-    base58 (0.2.3)
-    concurrent-ruby (1.1.10)
-    devops_assist (0.2.1)
+    colorize (0.8.1)
+    concurrent-ruby (1.2.2)
+    devops_assist (0.3.11)
       git_cli
-      git_cli_prompt
+      git_cli_prompt (~> 0.3.3)
       gvcs
       teLogger
       toolrack
       tty-prompt
     diff-lcs (1.5.0)
-    git_cli (0.9.0)
+    git_cli (0.11.4)
       gvcs
       ptools (~> 1.4.0)
-      tlogger
+      teLogger
       toolrack
-    git_cli_prompt (0.2.2)
-      tlogger
+    git_cli_prompt (0.3.4)
+      teLogger
       toolrack
       tty-prompt
-    gvcs (0.1.0)
+    gvcs (0.1.2)
     i18n (1.12.0)
       concurrent-ruby (~> 1.0)
-    minitest (5.16.3)
+    minitest (5.18.0)
     pastel (0.8.0)
       tty-color (~> 0.5)
-    ptools (1.4.2)
+    ptools (1.4.3)
     rake (13.0.6)
-    rspec (3.11.0)
-      rspec-core (~> 3.11.0)
-      rspec-expectations (~> 3.11.0)
-      rspec-mocks (~> 3.11.0)
-    rspec-core (3.11.0)
-      rspec-support (~> 3.11.0)
-    rspec-expectations (3.11.0)
+    release-gem (0.1.15)
+      colorize
+      git_cli
+      gvcs
+      teLogger
+      toolrack
+      tty-command
+      tty-prompt
+    rspec (3.12.0)
+      rspec-core (~> 3.12.0)
+      rspec-expectations (~> 3.12.0)
+      rspec-mocks (~> 3.12.0)
+    rspec-core (3.12.1)
+      rspec-support (~> 3.12.0)
+    rspec-expectations (3.12.2)
       diff-lcs (>= 1.2.0, < 2.0)
-      rspec-support (~> 3.11.0)
-    rspec-mocks (3.11.1)
+      rspec-support (~> 3.12.0)
+    rspec-mocks (3.12.5)
       diff-lcs (>= 1.2.0, < 2.0)
-      rspec-support (~> 3.11.0)
-    rspec-support (3.11.0)
-    teLogger (0.2.0)
-    tlogger (0.26.3)
-    toolrack (0.18.6)
-      base58
-      tlogger
+      rspec-support (~> 3.12.0)
+    rspec-support (3.12.0)
+    teLogger (0.2.2)
+    toolrack (0.22.1)
     tty-color (0.6.0)
+    tty-command (0.10.1)
+      pastel (~> 0.8)
     tty-cursor (0.7.1)
     tty-prompt (0.23.1)
       pastel (~> 0.8)
@@ -80,19 +86,22 @@ GEM
       tty-screen (~> 0.8)
       wisper (~> 2.0)
     tty-screen (0.8.1)
-    tzinfo (2.0.5)
+    tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     wisper (2.0.1)
-    zeitwerk (2.6.0)
 
 PLATFORMS
+  universal-java-1.8
   universal-java-11
+  universal-java-17
+  x86_64-linux
 
 DEPENDENCIES
   ccrypto!
   ccrypto-java!
   devops_assist
   rake (~> 13.0)
+  release-gem
   rspec (~> 3.0)
 
 BUNDLED WITH

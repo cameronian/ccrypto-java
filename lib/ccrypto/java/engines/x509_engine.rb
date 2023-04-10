@@ -44,6 +44,7 @@ module Ccrypto
         end
 
         signHash = :sha256 if is_empty?(signHash)
+        raise X509EngineException, "Given digest algo '#{signHash}' is not suported" if not DigestEngine.is_digest_supported?(signHash)
 
         validFrom = cp.not_before 
         validTo = cp.not_after
@@ -131,7 +132,7 @@ module Ccrypto
             kur =  org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_codeSigning
           when :emailProtection
             kur = org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_emailProtection
-          when :timestamping
+          when :timeStamping
             kur = org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_timeStamping
           when :ocspSigning
             kur = org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_OCSPSigning
@@ -148,7 +149,8 @@ module Ccrypto
 
         #extKeyUsage = java.util.Vector.new
         cp.domain_key_usage.each do |dku, critical|
-          kur = org.bouncycastle.asn1.DERObjectIdentifier.new(dku)
+          #kur = org.bouncycastle.asn1.DERObjectIdentifier.new(dku)
+          kur = org.bouncycastle.asn1.ASN1ObjectIdentifier.new(dku)
 
           ekuCritical = critical if critical
           eku.add_element(kur)
@@ -186,7 +188,8 @@ module Ccrypto
         csrCp.custom_extension.each do |k, v|
           val = v[:value]
           val = "" if is_empty?(val)
-          ev = org.bouncycastle.asn1.x509.Extension.new(org.bouncycastle.asn1.DERObjectIdentifier.new(k), v[:critical], org.bouncycastle.asn1.DEROctetString.new(val.to_java.getBytes))
+          #ev = org.bouncycastle.asn1.x509.Extension.new(org.bouncycastle.asn1.DERObjectIdentifier.new(k), v[:critical], org.bouncycastle.asn1.DEROctetString.new(val.to_java.getBytes))
+          ev = org.bouncycastle.asn1.x509.Extension.new(org.bouncycastle.asn1.ASN1ObjectIdentifier.new(k), v[:critical], org.bouncycastle.asn1.DEROctetString.new(val.to_java.getBytes))
           certGen.addExtension(ev)
         end
 
@@ -222,9 +225,8 @@ module Ccrypto
         certGen.addExtension(org.bouncycastle.asn1.x509.Extension::subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(org.bouncycastle.asn1.x509.SubjectPublicKeyInfo.getInstance(csrCp.public_key.to_bin)))
 
         signAlgo = nil
-
-        signHashVal = signHash.provider_config
-        signHashVal.gsub!("-","")
+        # alreacy check if digest algo exist or not at the entry of the method
+        signHashVal = DigestEngine.find_digest_config(signHash).provider_config[:algo_name].gsub("-","")
 
         gKey = issuerKey
         loop do
@@ -271,6 +273,7 @@ module Ccrypto
         end
 
         signHash = :sha256 if is_empty?(signHash)
+        raise X509EngineException, "Given digest algo '#{signHash}' is not suported" if not DigestEngine.is_digest_supported?(signHash)
 
         validFrom = cp.not_before 
         validTo = cp.not_after
@@ -358,7 +361,7 @@ module Ccrypto
             kur =  org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_codeSigning
           when :emailProtection
             kur = org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_emailProtection
-          when :timestamping
+          when :timeStamping
             kur = org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_timeStamping
           when :ocspSigning
             kur = org.bouncycastle.asn1.x509.KeyPurposeId::id_kp_OCSPSigning
@@ -375,7 +378,8 @@ module Ccrypto
 
         #extKeyUsage = java.util.Vector.new
         cp.domain_key_usage.each do |dku, critical|
-          kur = org.bouncycastle.asn1.DERObjectIdentifier.new(dku)
+          #kur = org.bouncycastle.asn1.DERObjectIdentifier.new(dku)
+          kur = org.bouncycastle.asn1.ASN1ObjectIdentifier.new(dku)
 
           ekuCritical = critical if critical
           eku.add_element(kur)
@@ -413,7 +417,8 @@ module Ccrypto
         cp.custom_extension.each do |k, v|
           val = v[:value]
           val = "" if is_empty?(val)
-          ev = org.bouncycastle.asn1.x509.Extension.new(org.bouncycastle.asn1.DERObjectIdentifier.new(k), v[:critical], org.bouncycastle.asn1.DEROctetString.new(val.to_java.getBytes))
+          #ev = org.bouncycastle.asn1.x509.Extension.new(org.bouncycastle.asn1.DERObjectIdentifier.new(k), v[:critical], org.bouncycastle.asn1.DEROctetString.new(val.to_java.getBytes))
+          ev = org.bouncycastle.asn1.x509.Extension.new(org.bouncycastle.asn1.ASN1ObjectIdentifier.new(k), v[:critical], org.bouncycastle.asn1.DEROctetString.new(val.to_java.getBytes))
           certGen.addExtension(ev)
         end
 
@@ -449,8 +454,8 @@ module Ccrypto
 
         signAlgo = nil
 
-        signHashVal = signHash.provider_config
-        signHashVal.gsub!("-","")
+        # alreacy check if digest algo exist or not at the entry of the method
+        signHashVal = DigestEngine.find_digest_config(signHash).provider_config[:algo_name].gsub("-","")
 
         gKey = issuerKey
         loop do

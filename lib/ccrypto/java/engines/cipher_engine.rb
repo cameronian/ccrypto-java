@@ -12,7 +12,197 @@ module Ccrypto
       teLogger_tag :j_cipher
 
       def self.supported_ciphers
-        res = java.security.Security.getAlgorithms("Cipher").to_a.delete_if { |e| e.include?(".") }.sort
+
+        # Notes : 
+        # des family purposely leave out
+        # NOEKEON not sure that it is
+        # RC2 expired
+        # Wrap purposely ignore
+        # Chacha, grain, ec, salsa20, vmpc, zuc: are unique. In ECB mode it requires IV to be set though during DECRYPTION only
+        skipped = ["des","desede","NOEKEON","RC2","wrap","chacha","GRAIN","HC","RC5","salsa20","vmpc","zuc"]
+        
+        if SupportedCipherList.instance.is_list_empty?
+          
+          java.security.Security.getAlgorithms("Cipher").to_a.delete_if { |e| e.include?(".") }.sort.each do |c|
+
+            next if skipped.map { |e|
+              if c.downcase =~ /#{e}/i
+                1
+              else
+                0
+              end
+            }.include?(1)
+
+            tester = c
+            loop do
+
+              begin
+                
+                kg = javax.crypto.KeyGenerator.getInstance(tester, JCEProvider::DEFProv)
+                teLogger.debug "#{tester} is good!"
+
+                native = { keygen_algo: tester }
+                opts = {  }
+                goodKz = []
+                [128,192,256,512].each do |kz|
+                  begin
+
+                    kg = javax.crypto.KeyGenerator.getInstance(tester, JCEProvider::DEFProv)
+                    kg.init(kz)
+                    kg.generateKey
+
+                    goodKz << kz
+
+                  rescue Exception => ex
+                    teLogger.debug "Probing for cipher algo #{tester}/#{kz} : #{ex}"
+                  end
+                end # keysize loop
+
+
+                authMode = [:gcm,:cfb,:ofb,:ctr,:ccm]
+                [:cbc,:cfb,:ecb,:gcm,:ofb,:ctr,:ccm].each do |mode|
+
+                  goodKz.each do |kz|
+                    begin
+
+                      kg = javax.crypto.KeyGenerator.getInstance(tester, JCEProvider::DEFProv)
+                      kg.init(kz)
+                      tkey = kg.generateKey
+
+                      cs = "#{tester}/#{mode}/NoPadding"
+                      tc = javax.crypto.Cipher.getInstance("#{tester}/#{mode}/NoPadding")
+
+                      ivLen = 16 
+                      if mode == :gcm
+                        ivLen = 12
+                        iv = Ccrypto::Java::SecureRandomEngine.random_bytes(ivLen)
+                        ivParam = javax.crypto.spec.GCMParameterSpec.new(iv.length*8, iv) # 16 bytes
+
+                      elsif ["blowfish","cast5","gost28147","idea","skipjack","tea","xtea"].include?(tester.downcase)
+                        if mode != :ecb
+                          ivLen = 8
+                          iv = Ccrypto::Java::SecureRandomEngine.random_bytes(ivLen)
+                          ivParam = javax.crypto.spec.IvParameterSpec.new(iv) # 16 bytes
+                        end
+
+                      elsif ["shacal-2"].include?(tester.downcase)
+                        ivLen = 32
+                        iv = Ccrypto::Java::SecureRandomEngine.random_bytes(ivLen)
+                        ivParam = javax.crypto.spec.IvParameterSpec.new(iv) # 16 bytes
+                        opts[:min_input_length] = 32
+
+                      elsif ["threefish-1024"].include?(tester.downcase)
+                        if mode != :ecb
+                        ivLen = 128
+                        iv = Ccrypto::Java::SecureRandomEngine.random_bytes(ivLen)
+                        ivParam = javax.crypto.spec.IvParameterSpec.new(iv) # 16 bytes
+                        end
+
+                      elsif ["threefish-256"].include?(tester.downcase)
+                        if mode != :ecb
+                        ivLen = 32
+                        iv = Ccrypto::Java::SecureRandomEngine.random_bytes(ivLen)
+                        ivParam = javax.crypto.spec.IvParameterSpec.new(iv) # 16 bytes
+                        end
+
+                      elsif ["threefish-512"].include?(tester.downcase)
+                        if mode != :ecb
+                        ivLen = 64
+                        iv = Ccrypto::Java::SecureRandomEngine.random_bytes(ivLen)
+                        ivParam = javax.crypto.spec.IvParameterSpec.new(iv) # 16 bytes
+                        end
+
+                      elsif mode == :ccm
+                        ivLen = 7
+                        iv = Ccrypto::Java::SecureRandomEngine.random_bytes(ivLen)
+                        ivParam = javax.crypto.spec.IvParameterSpec.new(iv) # 16 bytes
+
+                      elsif mode != :ecb
+                        ivLen = 16
+                        iv = Ccrypto::Java::SecureRandomEngine.random_bytes(ivLen)
+                        ivParam = javax.crypto.spec.IvParameterSpec.new(iv) # 16 bytes
+
+                      else
+                        ivLen = 0
+
+                      end
+
+                      data = Ccrypto::Java::SecureRandomEngine.random_bytes(16)
+
+                      if ivParam.nil?
+                        tc.init(javax.crypto.Cipher::ENCRYPT_MODE, tkey)
+                      else
+                        tc.init(javax.crypto.Cipher::ENCRYPT_MODE, tkey, ivParam)
+                      end
+
+                      tc.update(to_java_bytes(data))
+                      tc.doFinal
+
+                      # 
+                      # if no error should be ok 
+                      #
+                      opts[:keysize] = kz
+                      opts[:mode] = mode
+                      opts[:ivLength] = ivLen
+
+                      opts[:authMode] = authMode.include?(mode)
+
+                      native[:cipher_str] = cs
+                      
+                      #if c.downcase =~ /shacal-2/
+                      #  puts opts
+                      #  puts native
+                      #end
+
+                      #puts "Registering #{tester}/#{kz}/#{mode}"
+                      
+                      conf = Ccrypto::CipherConfig.new(tester, opts)
+                      conf.native_config = native.clone
+
+                      #teLogger.debug "New config : #{conf.inspect} / #{conf.native_config}"
+
+                      #teLogger.debug "Registering : #{conf.inspect}"
+                      Ccrypto::SupportedCipherList.instance.register(conf.clone)
+
+
+                    rescue Exception => ex
+                      teLogger.debug "Probing for cipher algo #{tester}/#{kz}/#{mode} : #{ex}"
+                      #teLogger.error ex.backtrace.join("\n")
+                    end
+
+                  end
+
+                end # mode loop
+
+
+                #conf = Ccrypto::CipherConfig.new(tester, opts)
+                #conf.native_config = native
+
+                #Ccrypto::SupportedCipherList.instance.register(conf)
+
+                #@supported << conf
+
+                break
+              rescue Exception => ex
+                teLogger.debug "Probing for cipher algo : #{ex}"
+                #teLogger.error ex.backtrace.join("\n")
+
+                if tester =~ /\//
+                  tester = tester.split("\/")[0]
+                elsif tester =~ /-/
+                  tester = tester.split("-")[0]
+                else
+                  break
+                end
+              end
+
+            end
+
+          end
+
+        end
+
+        SupportedCipherList.instance
       end
 
       def self.is_supported_cipher?(c)
@@ -27,37 +217,46 @@ module Ccrypto
         end
       end
 
-      def self.to_spec(hash)
-        res = []
-        res << hash[:algo].to_s
-        res << hash[:mode].to_s
-        res << hash[:padding].to_s
-        res.join("/")
+      def self.get_cipher(algo, keysize = nil, mode = nil)
+        supported_ciphers if Ccrypto::SupportedCipherList.instance.algo_count == 0
+
+        if is_empty?(algo)
+          []
+        elsif is_empty?(keysize) and is_empty?(mode)
+          teLogger.debug "get_cipher algo #{algo} only"
+          Ccrypto::SupportedCipherList.instance.find_algo(algo)
+        elsif is_empty?(mode) and not_empty?(keysize)
+          teLogger.debug "get_cipher algo #{algo} keysize #{keysize}"
+          Ccrypto::SupportedCipherList.instance.find_algo_keysize(algo, keysize)
+        elsif not_empty?(mode) and is_empty?(keysize)
+          teLogger.debug "get_cipher algo #{algo} mode #{mode}"
+          Ccrypto::SupportedCipherList.instance.find_algo_mode(algo, mode)
+        elsif not_empty?(keysize) and not_empty?(mode)
+          teLogger.debug "get_cipher #{algo}/#{keysize}/#{mode}"
+          Ccrypto::SupportedCipherList.instance.find_algo_keysize_mode(algo, keysize, mode)
+        end
+      end
+      class << self
+        alias_method :get_cipher_config, :get_cipher
       end
 
-      def supported_ciphers
-        self.class.supported_ciphers
-      end
 
+      ## 
+      # Instance variable
+      ##
       def initialize(*args, &block)
 
         @spec = args.first
 
-        case @spec
-        when String, java.lang.String, Hash
-          @spec = Ccrypto::DirectCipherConfig.new(@spec)
-        when Ccrypto::CipherConfig
-        else
-          raise Ccrypto::CipherEngineException, "Unsupported config type #{@spec.class}"
-        end
-
+        raise Ccrypto::CipherEngineException, "Unsupported config type #{@spec.class}" if not @spec.is_a?(Ccrypto::CipherConfig)
 
         if block
           @cipherJceProvider = block.call(:cipher_jceProvider)
           @keygenJceProvider = block.call(:keygen_jceProvider)
         end
 
-        cSpec = to_cipher_spec(@spec)
+        #cSpec = to_cipher_spec(@spec)
+        cSpec = @spec.native_config[:cipher_str]
         if @cipherJceProvider.nil?
           begin
             teLogger.debug "Cipher instance #{cSpec} with null provider"
@@ -77,7 +276,7 @@ module Ccrypto
 
         else
           
-          teLogger.debug "Generating cipher key"
+          teLogger.debug "Generating cipher key #{@spec.inspect}"
           if @keygenJceProvider.nil?
             kg = javax.crypto.KeyGenerator.getInstance(to_algo(@spec.algo))
           else
@@ -89,43 +288,61 @@ module Ccrypto
 
         end
 
-        if @spec.iv.is_a?(String)
-          @spec.iv = to_java_bytes(@spec.iv)
-        end
+        #if @spec.iv.is_a?(String)
+        #  @spec.iv = to_java_bytes(@spec.iv)
+        #end
 
-        if @spec.is_mode?(:gcm) or @spec.is_algo?(:chacha20)
+        if @spec.iv_required?
           if is_empty?(@spec.iv)
-            teLogger.debug "Generating 12 bytes of IV"
-            @spec.iv = Ccrypto::Java::SecureRandomEngine.random_bytes(12)
+            @spec.iv = Ccrypto::Java::SecureRandomEngine.random_bytes(@spec.ivLength)
           else
-            teLogger.debug "Using given IV"
+            if @spec.iv.is_a?(String)
+              @spec.iv = to_java_bytes(@spec.iv)
+            end
           end
 
           if @spec.is_mode?(:gcm)
-            ivParam = javax.crypto.spec.GCMParameterSpec.new(@spec.iv.length*8, @spec.iv) # 16 bytes
+            ivParam = javax.crypto.spec.GCMParameterSpec.new(@spec.iv.length*8, @spec.iv) # 12 bytes
           else
             ivParam = javax.crypto.spec.IvParameterSpec.new(@spec.iv) # 16 bytes
           end
 
-        elsif @spec.is_algo?(:blowfish)
-          if is_empty?(@spec.iv)
-            teLogger.debug "Generating 8 bytes of IV"
-            @spec.iv = Ccrypto::Java::SecureRandomEngine.random_bytes(8)
-          else
-            teLogger.debug "Using given IV"
-          end
-          ivParam = javax.crypto.spec.IvParameterSpec.new(@spec.iv)
-
-        elsif @spec.is_mode?(:cbc) or @spec.is_mode?(:ctr) or @spec.is_mode?(:cfb) or @spec.is_mode?(:ofb)
-          if is_empty?(@spec.iv)
-            teLogger.debug "Generating 16 bytes of IV" 
-            @spec.iv = Ccrypto::Java::SecureRandomEngine.random_bytes(16)
-          else
-            teLogger.debug "Using given IV"
-          end
-          ivParam = javax.crypto.spec.IvParameterSpec.new(@spec.iv)
-
         end
+
+
+        #if @spec.is_mode?(:gcm) or @spec.is_algo?(:chacha20)
+        #  if is_empty?(@spec.iv)
+        #    teLogger.debug "Generating 12 bytes of IV"
+        #    @spec.iv = Ccrypto::Java::SecureRandomEngine.random_bytes(12)
+        #  else
+        #    teLogger.debug "Using given IV"
+        #  end
+
+        #  if @spec.is_mode?(:gcm)
+        #    ivParam = javax.crypto.spec.GCMParameterSpec.new(@spec.iv.length*8, @spec.iv) # 16 bytes
+        #  else
+        #    ivParam = javax.crypto.spec.IvParameterSpec.new(@spec.iv) # 16 bytes
+        #  end
+
+        #elsif @spec.is_algo?(:blowfish)
+        #  if is_empty?(@spec.iv)
+        #    teLogger.debug "Generating 8 bytes of IV"
+        #    @spec.iv = Ccrypto::Java::SecureRandomEngine.random_bytes(8)
+        #  else
+        #    teLogger.debug "Using given IV"
+        #  end
+        #  ivParam = javax.crypto.spec.IvParameterSpec.new(@spec.iv)
+
+        #elsif @spec.is_mode?(:cbc) or @spec.is_mode?(:ctr) or @spec.is_mode?(:cfb) or @spec.is_mode?(:ofb)
+        #  if is_empty?(@spec.iv)
+        #    teLogger.debug "Generating 16 bytes of IV" 
+        #    @spec.iv = Ccrypto::Java::SecureRandomEngine.random_bytes(16)
+        #  else
+        #    teLogger.debug "Using given IV"
+        #  end
+        #  ivParam = javax.crypto.spec.IvParameterSpec.new(@spec.iv)
+
+        #end
 
         #teLogger.debug "IV : #{@spec.iv}"
 
