@@ -11,8 +11,7 @@ GIT
 PATH
   remote: .
   specs:
-    ccrypto-java (0.1.1)
-      ccrypto
+    ccrypto-java (0.1.2)
       teLogger
       toolrack
 
@@ -26,23 +25,12 @@ GEM
       tzinfo (~> 2.0)
     colorize (0.8.1)
     concurrent-ruby (1.2.2)
-    devops_assist (0.3.11)
-      git_cli
-      git_cli_prompt (~> 0.3.3)
-      gvcs
-      teLogger
-      toolrack
-      tty-prompt
     diff-lcs (1.5.0)
     git_cli (0.11.4)
       gvcs
       ptools (~> 1.4.0)
       teLogger
       toolrack
-    git_cli_prompt (0.3.4)
-      teLogger
-      toolrack
-      tty-prompt
     gvcs (0.1.2)
     i18n (1.12.0)
       concurrent-ruby (~> 1.0)
@@ -99,7 +87,6 @@ PLATFORMS
 DEPENDENCIES
   ccrypto!
   ccrypto-java!
-  devops_assist
   rake (~> 13.0)
   release-gem
   rspec (~> 3.0)
