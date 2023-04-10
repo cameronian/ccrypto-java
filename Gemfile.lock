@@ -11,7 +11,7 @@ GIT
 PATH
   remote: .
   specs:
-    ccrypto-java (0.1.0)
+    ccrypto-java (0.1.1)
       ccrypto
       teLogger
       toolrack
